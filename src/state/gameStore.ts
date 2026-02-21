@@ -172,7 +172,7 @@ export const useGameStore = create<GameState>()(
           name: trimmedName,
           logoUrl: creation.selectedLogoUrl,
           createdAt: Date.now(),
-          coins: 200,
+          coins: 2000,
           fans: 0,
           reputation: 0,
           fameStars: 0,

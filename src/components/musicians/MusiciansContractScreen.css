@@ -388,20 +388,20 @@
 }
 
 .musician-attr-stat img {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   object-fit: contain;
 }
 
 .musician-attr-stat-head span {
-  font-size: 0.5rem;
+  font-size: 0.58rem;
   color: rgba(255, 255, 255, 0.86);
   font-weight: 700;
 }
 
 .musician-attr-stat strong {
   justify-self: center;
-  font-size: 0.64rem;
+  font-size: 0.78rem;
   color: #fff;
   font-weight: 900;
   line-height: 1;
