@@ -268,16 +268,16 @@ const getRhythmTone = (value: number) => {
 const INITIAL_BPM = 220;
 const METRONOME_BEAT_MS = 60000 / INITIAL_BPM;
 const METRONOME_HIT_WINDOW_MS = METRONOME_BEAT_MS * 0.28;
-const RHYTHM_PLAY_THRESHOLD = 30;
+const RHYTHM_PLAY_THRESHOLD = 45;
 const SHOW_FAME_REWARD = 5;
 const FANS_GAIN_BASE_RATE = 0.05;
 const FANS_GAIN_MAX_RATE = 0.3;
 const FANS_GAIN_STEP_RATE = 0.05;
 const FANS_GAIN_STEP_MS = 20000;
 const DEFAULT_MUSIC_BPM = 120;
-const PRE_MUSIC_TAP_GAIN = 4.1;
-const PRE_MUSIC_DECAY = 1.5;
-const POST_MUSIC_DECAY = 2.2;
+const PRE_MUSIC_TAP_GAIN = 2.2;
+const PRE_MUSIC_DECAY = 1.8;
+const POST_MUSIC_DECAY = 2.6;
 const CROWD_DECAY_WHEN_STOPPED = 1;
 const CROWD_DECAY_EVERY_STEPS = 1;
 const TAP_EFFECT_LIFETIME_MS = 140;
@@ -1034,7 +1034,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       }
     }
 
-    const gainBase = onBeat ? 6 : beatDistance <= metronomeHitWindowMs * 2 ? 3 : 2;
+    const gainBase = onBeat ? 4 : beatDistance <= metronomeHitWindowMs * 2 ? 2 : 1;
     const gain = Math.ceil(gainBase * rhythmBonusRef.current);
     setRhythmMeter((current) => Math.min(100, current + gain));
   };
@@ -1292,10 +1292,6 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
   const handlePointerPulse = (event: React.PointerEvent<HTMLElement>) => {
     if (activeScreen !== 'band' || isBandManagementScreenVisible || isBandConfigVisible) {
-      return;
-    }
-
-    if (!event.isPrimary) {
       return;
     }
 
