@@ -1,0 +1,426 @@
+.stage-center-panel {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  align-content: start;
+  gap: 6px;
+  position: static;
+  padding-top: 2px;
+  min-height: 430px;
+}
+
+.mini-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.kpi-box {
+  position: relative;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  display: block;
+  text-align: left;
+  color: #303030;
+  min-width: 0;
+  min-height: 42px;
+}
+
+.kpi-main-icon {
+  position: absolute;
+  left: 0;
+  top: 34%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  z-index: 2;
+}
+
+.kpi-texts {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  margin-left: 12px;
+  padding-top: 1px;
+}
+
+.kpi-name {
+  font-size: 0.54rem;
+  opacity: 0.92;
+  font-weight: 800;
+  white-space: nowrap;
+  display: inline-block;
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 200, 200, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1px 4px 1px 19px;
+}
+
+.kpi-box strong {
+  font-size: clamp(0.72rem, 2.2vw, 0.98rem);
+  font-weight: 900;
+  -webkit-text-stroke: 0.25px currentColor;
+  text-shadow: 0 0 0 currentColor;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  width: 100%;
+  max-width: none;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 200, 200, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  line-height: 1.08;
+  padding: 1px 4px 3px 19px;
+}
+
+.kpi-box-cache strong {
+  font-size: clamp(0.68rem, 2vw, 0.9rem);
+  letter-spacing: -0.01em;
+}
+
+.venue-card {
+  width: min(260px, 66vw);
+  margin: 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  text-align: center;
+  padding: 8px 10px;
+  color: #ffffff;
+  backdrop-filter: blur(3px);
+}
+
+.venue-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.venue-meta {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.venue-meta span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 900;
+  font-size: 0.94rem;
+  line-height: 1;
+}
+
+.venue-meta-icon {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.stage-side-cost {
+  justify-self: start;
+  position: absolute;
+  left: 0;
+  top: 86px;
+  border: 2px solid rgba(0, 0, 0, 0.65);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #202020;
+}
+
+.cost-gain-meter {
+  position: absolute;
+  top: auto;
+  bottom: var(--stage-side-meter-bottom, 182px);
+  left: 4px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.cost-gain-core {
+  position: relative;
+  margin-top: -15px;
+  margin-bottom: -15px;
+}
+
+.cost-gain-track {
+  width: 18px;
+  height: 226px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+
+.cost-gain-fill-cost,
+.cost-gain-fill-gain {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 0;
+  transition: height 0.2s ease;
+}
+
+.cost-gain-fill-cost {
+  top: 0;
+  background: linear-gradient(180deg, #ff8d8d 0%, #db1f1f 100%);
+}
+
+.cost-gain-fill-gain {
+  bottom: 0;
+  background: linear-gradient(180deg, #b8f89a 0%, #45be2f 100%);
+}
+
+.cost-gain-fill-cost::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.cost-gain-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  z-index: 3;
+}
+
+.cost-gain-value {
+  position: absolute;
+  left: calc(100% + 6px);
+  transform: translateY(-50%);
+  min-width: 78px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(141, 241, 133, 0.95);
+  background: rgba(17, 65, 28, 0.94);
+  color: #c9ffba;
+  font-weight: 800;
+  font-size: 0.86rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.rhythm-side-meter {
+  position: absolute;
+  right: 0;
+  top: auto;
+  bottom: var(--stage-side-meter-bottom, 182px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.rhythm-metronome {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 5px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  background: rgba(14, 35, 31, 0.72);
+  display: grid;
+  place-items: center;
+}
+
+.rhythm-metronome.tick {
+  box-shadow: 0 0 12px rgba(148, 224, 98, 0.8);
+  border-color: rgba(178, 255, 172, 0.95);
+}
+
+.rhythm-metronome.hit {
+  box-shadow: 0 0 16px rgba(255, 223, 103, 0.95);
+  border-color: rgba(255, 239, 170, 1);
+}
+
+.rhythm-metronome-arm {
+  width: 2px;
+  height: 10px;
+  border-radius: 999px;
+  background: #d7ffd8;
+  transform-origin: bottom center;
+  animation: metronomeSwing 0.5s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+
+.rhythm-metronome-arm.active {
+  animation-play-state: running;
+}
+
+@keyframes metronomeSwing {
+  from {
+    transform: rotate(-28deg);
+  }
+  to {
+    transform: rotate(28deg);
+  }
+}
+
+.beat-hit-badge {
+  margin-bottom: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.45;
+  transform: translateY(0) scale(0.94);
+  transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.beat-hit-badge.show {
+  opacity: 1;
+  color: #1a1a1a;
+  background: rgba(255, 227, 117, 0.98);
+  border-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px) scale(1);
+}
+
+.rhythm-bonus-tag {
+  margin-bottom: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rhythm-bonus-tag.active {
+  background: rgba(49, 158, 73, 0.86);
+  border-color: rgba(200, 255, 187, 0.95);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(116, 255, 118, 0.55);
+}
+
+.rhythm-bonus-tag.flash {
+  animation: bonusFlash 0.24s ease-out;
+}
+
+@keyframes bonusFlash {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.rhythm-side-track {
+  width: 18px;
+  height: 226px;
+  margin-bottom: -15px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  background: linear-gradient(180deg, rgba(26, 68, 62, 0.72), rgba(14, 35, 31, 0.78));
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.rhythm-side-fill {
+  width: 100%;
+  height: 0;
+  border-radius: 0;
+  transition: height 0.18s linear;
+}
+
+.rhythm-side-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  z-index: 3;
+}
+
+@media (max-width: 720px) {
+  .cost-gain-meter {
+    left: 4px;
+  }
+
+  .cost-gain-track {
+    height: 196px;
+    width: 16px;
+  }
+
+  .cost-gain-value {
+    min-width: 70px;
+    padding: 3px 6px;
+    font-size: 0.78rem;
+  }
+
+  .rhythm-side-meter {
+    right: 0;
+  }
+
+  .rhythm-bonus-tag {
+    font-size: 0.58rem;
+    padding: 2px 6px;
+  }
+
+  .beat-hit-badge {
+    font-size: 0.54rem;
+    padding: 2px 6px;
+  }
+
+  .rhythm-metronome {
+    width: 22px;
+    height: 22px;
+  }
+
+  .rhythm-metronome-arm {
+    height: 9px;
+  }
+
+  .rhythm-side-track {
+    width: 16px;
+    height: 196px;
+    margin-bottom: -14px;
+  }
+
+  .rhythm-side-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .kpi-main-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .kpi-name {
+    font-size: 0.5rem;
+    max-width: 58px;
+    padding-left: 18px;
+  }
+
+  .kpi-box strong {
+    font-size: 0.86rem;
+    max-width: 66px;
+    padding-left: 18px;
+  }
+}

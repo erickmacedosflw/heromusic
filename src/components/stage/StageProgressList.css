@@ -1,0 +1,79 @@
+.stage-progress-list {
+  display: grid;
+  gap: 5px;
+}
+
+.stage-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.progress-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  position: relative;
+  z-index: 3;
+}
+
+.progress-bar-shell {
+  position: relative;
+  margin-left: -15px;
+  width: calc(100% + 15px);
+  min-height: 26px;
+  border-radius: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 20px;
+}
+
+.progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 8px;
+  opacity: 0.9;
+}
+
+.progress-text {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.progress-text strong {
+  font-size: 0.92rem;
+  font-weight: 900;
+  -webkit-text-stroke: 0.25px currentColor;
+  text-shadow: 0 0 0 currentColor;
+}
+
+.fame-track .progress-bar-shell {
+  background: #0e3c66;
+}
+
+.fame-track .progress-fill {
+  background: #2a7dbd;
+  border-radius: 0;
+}
+
+.crowd-track .progress-bar-shell {
+  background: #7a5b08;
+}
+
+.crowd-track .progress-fill {
+  background: #bf900f;
+  border-radius: 0;
+}

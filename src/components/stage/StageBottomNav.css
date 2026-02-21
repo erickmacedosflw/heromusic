@@ -1,0 +1,135 @@
+.game-bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0;
+}
+
+.bottom-item {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.96);
+  background: #ffffff;
+  color: #2d2d2d;
+  border-radius: 11px;
+  min-height: 64px;
+  padding: 2px 2px 0;
+  display: grid;
+  grid-template-rows: minmax(35px, 1fr) auto;
+  align-items: stretch;
+  gap: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 150ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.bottom-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.02);
+}
+
+.bottom-item:active {
+  transform: scale(0.97);
+}
+
+.bottom-item-icon {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  border-radius: 7px 7px 0 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  object-fit: cover;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.bottom-item:hover .bottom-item-icon {
+  transform: scale(1.02);
+  filter: saturate(1.05);
+}
+
+.bottom-item span {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 4px 2px 5px;
+  font-size: 0.7rem;
+}
+
+.bottom-item.active {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(135, 101, 188, 0.45), 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.bottom-item-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  left: auto;
+  transform: none;
+  width: 20px;
+  min-width: 20px;
+  max-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  max-height: 20px;
+  border-radius: 999px;
+  background: #56b835;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  font-size: 0.6rem;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  padding: 0;
+  text-align: center;
+  z-index: 4;
+}
+
+.bottom-item span.bottom-item-badge {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 20px;
+  text-align: center;
+  font-size: 0.6rem;
+}
+
+.bottom-item-badge-green {
+  background: #30a941;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.38), 0 4px 10px rgba(22, 86, 33, 0.35);
+  animation: bottomBadgePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes bottomBadgePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bottom-item.has-badge {
+  overflow: visible;
+}
+
+@media (max-width: 720px) {
+  .bottom-item {
+    min-height: 56px;
+    font-size: 0.54rem;
+  }
+
+  .bottom-item-icon {
+    max-width: none;
+    height: 100%;
+  }
+}

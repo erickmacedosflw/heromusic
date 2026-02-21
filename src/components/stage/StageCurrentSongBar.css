@@ -1,0 +1,96 @@
+.stage-current-song {
+  margin-top: 2px;
+  margin-bottom: 6px;
+  display: grid;
+  gap: 4px;
+}
+
+.fans-gain-track .progress-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.fans-gain-track .progress-bar-shell {
+  width: calc(30% + 15px);
+  min-height: 18px;
+  border-radius: 7px;
+  border-width: 2px;
+  background: #6a5207;
+  border-color: rgba(255, 233, 150, 0.95);
+  padding: 0 6px 0 16px;
+}
+
+.fans-gain-track .progress-bar-shell::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 5px;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(16.666% - 1px),
+    rgba(255, 255, 255, 0.45) calc(16.666% - 1px),
+    rgba(255, 255, 255, 0.45) 16.666%
+  );
+  opacity: 0.55;
+}
+
+.fans-gain-track .progress-fill {
+  background: linear-gradient(90deg, #ffd74a 0%, #ffbf1f 100%);
+  border-radius: 0;
+}
+
+.fans-gain-text {
+  justify-content: flex-end;
+  font-size: 0.68rem;
+}
+
+.fans-gain-text strong {
+  font-size: 0.72rem;
+}
+
+.fans-gain-step-burst {
+  position: absolute;
+  right: -28px;
+  top: -12px;
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  background: rgba(21, 57, 18, 0.92);
+  color: #b6ff9f;
+  opacity: 0;
+  transform: translateY(4px) scale(0.9);
+  transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+.fans-gain-step-burst.show {
+  opacity: 1;
+  transform: translateY(-2px) scale(1);
+}
+
+.song-track .progress-bar-shell {
+  background: #3b2a53;
+  border-color: rgba(236, 219, 255, 0.95);
+}
+
+.song-track .progress-fill {
+  background: #8d6bc8;
+  border-radius: 0;
+}
+
+.song-progress-text {
+  justify-content: flex-start;
+  color: #ffffff;
+}
+
+.song-progress-text strong {
+  font-size: 0.9rem;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

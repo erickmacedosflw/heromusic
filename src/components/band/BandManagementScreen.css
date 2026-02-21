@@ -1,0 +1,240 @@
+.band-management-screen {
+  position: absolute;
+  inset: 0;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: rgba(12, 12, 12, 0.9);
+  z-index: 8;
+  overflow: hidden;
+  animation: musiciansModalIn 340ms ease-out;
+}
+
+.band-management-screen.closing {
+  animation: musiciansModalOut 260ms ease-in forwards;
+}
+
+.band-management-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  height: 100%;
+  padding: 0;
+  animation: musiciansContentIn 360ms cubic-bezier(0.2, 0.8, 0.22, 1);
+}
+
+.band-management-screen.closing .band-management-content {
+  animation: musiciansContentOut 240ms ease-in forwards;
+}
+
+.band-management-top-hero {
+  position: relative;
+  z-index: 2;
+  min-height: clamp(250px, 36vh, 320px);
+  padding: calc(14px + var(--stage-top-overlay-safe)) 12px 8px;
+  overflow: visible;
+}
+
+.band-management-header {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.band-management-header h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.band-management-header p {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  opacity: 0.86;
+}
+
+.band-management-bottom-panel {
+  position: relative;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 14px 14px 0 0;
+  border: none;
+  padding: 8px 8px 10px;
+  display: grid;
+  grid-template-rows: 1fr;
+  align-content: stretch;
+  min-height: 0;
+  margin-top: -10px;
+  box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.18);
+}
+
+.band-management-placeholder {
+  min-height: 0;
+  height: 100%;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  border: none;
+  box-shadow: none;
+  display: grid;
+  align-content: start;
+  justify-items: stretch;
+  gap: 10px;
+  color: #141414;
+  text-align: left;
+  padding: 10px;
+}
+
+.band-menu-nav {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.band-menu-tab {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  background: rgba(240, 240, 240, 0.95);
+  color: #1a1a1a;
+  position: relative;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: inline-block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  transform-origin: left center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: width 320ms cubic-bezier(0.16, 0.84, 0.22, 1), box-shadow 260ms ease, border-color 260ms ease, background 260ms ease;
+}
+
+.band-menu-tab img {
+  position: absolute;
+  left: 21px;
+  top: 50%;
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  transition: width 200ms ease, height 200ms ease, transform 200ms ease;
+}
+
+.band-menu-tab.active {
+  background: rgba(240, 240, 240, 0.95);
+  color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.92), 0 8px 18px rgba(0, 0, 0, 0.22);
+  width: 108px;
+  min-width: 108px;
+  padding: 0;
+  animation: musiciansFilterSelect 320ms cubic-bezier(0.16, 0.84, 0.22, 1);
+}
+
+.band-menu-tab:active {
+  animation: musiciansFilterTap 180ms ease;
+}
+
+.band-menu-tab span {
+  position: absolute;
+  left: 38px;
+  top: 50%;
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  transition: opacity 220ms ease, max-width 320ms cubic-bezier(0.16, 0.84, 0.22, 1);
+}
+
+.band-menu-tab.active span {
+  opacity: 1;
+  max-width: 72px;
+}
+
+.band-gains-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.band-gain-item {
+  min-height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.band-gain-item img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+}
+
+.band-gain-item span {
+  position: absolute;
+  top: -2px;
+  left: 16px;
+  font-size: 0.5rem;
+  font-weight: 900;
+  color: rgba(20, 20, 20, 0.76);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.band-gain-item strong {
+  margin-left: -14px;
+  width: calc(100% + 14px);
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px 0 14px;
+  text-align: right;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #2f2f2f;
+  font-weight: 900;
+  font-size: 0.74rem;
+  line-height: 1;
+  -webkit-text-stroke: 0.15px currentColor;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 720px) {
+  .band-management-top-hero {
+    min-height: clamp(250px, 36vh, 320px);
+  }
+
+  .band-management-bottom-panel {
+    padding: 8px 8px 10px;
+  }
+
+  .band-management-placeholder {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .band-menu-nav {
+    min-height: 44px;
+    padding-bottom: 0;
+  }
+
+  .band-menu-tab {
+    height: 44px;
+    min-height: 44px;
+  }
+}

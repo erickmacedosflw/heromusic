@@ -1,0 +1,17 @@
+{
+  "musicas": [
+    {
+      "id": "blues_na_garagem",
+      "nome": "Blues na Garagem",
+      "descricao": "Blues instrumental de andamento médio, com groove marcado de baixo e bateria, teclas de apoio harmônico e guitarra elétrica em destaque melódico.",
+      "bpm": 120,
+      "compasso": "4/4",
+      "tom": "C",
+      "stream": "src/rsc/musics/blues_na_garagem/Musica_Blues_na_Garagem.mp3",
+      "bass": "src/rsc/musics/blues_na_garagem/blues_na_garagem_Bass.mp3",
+      "drums": "src/rsc/musics/blues_na_garagem/blues_na_garagem_Drums.mp3",
+      "keys": "src/rsc/musics/blues_na_garagem/blues_na_garagem_Keys.mp3",
+      "eletricguitar": "src/rsc/musics/blues_na_garagem/blues_na_garagem_ElectricGuitar.mp3"
+    }
+  ]
+}
