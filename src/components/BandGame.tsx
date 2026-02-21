@@ -458,6 +458,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     () => activeBandMusicians.reduce((total, musician) => total + musician.Cache, 0),
     [activeBandMusicians]
   );
+  const hasActiveMusicians = activeBandMusicians.length > 0;
 
   const selectedStage = useMemo(
     () => stages.find((stage) => stage.IDPalco === currentStageId) ?? stages.find((stage) => stage.IDPalco === 1) ?? stages[0],
@@ -1310,8 +1311,8 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const stageAudio = selectedMusicStream
       ? new Howl({
         src: [selectedMusicStream],
-        preload: true,
-        html5: false,
+        preload: 'metadata',
+        html5: true,
         volume: isMusicEnabled ? 1 : 0,
       })
       : null;
@@ -1491,6 +1492,16 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       return;
     }
 
+    if (!hasActiveMusicians) {
+      if (stageAudio.playing()) {
+        stageAudio.pause();
+      }
+      setIsMusicPlaying(false);
+      setMetronomeTick(false);
+      metronomeBeatIndexRef.current = -1;
+      return;
+    }
+
     if (rhythmMeter > RHYTHM_PLAY_THRESHOLD) {
       if (!stageAudio.playing()) {
         stageAudio.play();
@@ -1504,7 +1515,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     setIsMusicPlaying(false);
     setMetronomeTick(false);
     metronomeBeatIndexRef.current = -1;
-  }, [rhythmMeter]);
+  }, [rhythmMeter, hasActiveMusicians]);
 
   return (
     <section

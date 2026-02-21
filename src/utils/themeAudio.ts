@@ -4,10 +4,10 @@ const themeMusicSrc = new URL('../rsc/audios/Musica_Tema.mp3', import.meta.url).
 
 const themeHowl = new Howl({
   src: [themeMusicSrc],
-  preload: true,
+  preload: 'metadata',
   loop: true,
   volume: 0.45,
-  html5: false,
+  html5: true,
   pool: 1,
 });
 
