@@ -1420,8 +1420,8 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     stemEntries.forEach(({ instrument, src }) => {
       stageStemAudios[instrument] = new Howl({
         src: [src],
-        preload: 'metadata',
-        html5: true,
+        preload: true,
+        html5: false,
         pool: 1,
         volume: isMusicEnabled ? (instrumentVolumes[instrument] ?? 1) : 0,
       });

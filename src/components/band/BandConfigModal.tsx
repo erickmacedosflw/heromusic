@@ -98,6 +98,7 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
                     max={100}
                     step={1}
                     value={sliderValue}
+                    onInput={(event) => onChangeInstrumentVolume(control.instrument, Number((event.target as HTMLInputElement).value) / 100)}
                     onChange={(event) => onChangeInstrumentVolume(control.instrument, Number(event.target.value) / 100)}
                     disabled={!isMusicEnabled}
                   />
