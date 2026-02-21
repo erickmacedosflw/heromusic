@@ -4,6 +4,8 @@
   left: 50%;
   transform: translateX(-50%);
   width: min(300px, calc(100vw - 24px));
+  max-height: calc(100vh - 74px);
+  max-height: calc(100dvh - 74px);
   background: rgba(255, 255, 255, 0.98);
   border: 2px solid rgba(255, 255, 255, 0.96);
   border-radius: 14px;
@@ -12,6 +14,8 @@
   color: #141414;
   overflow: hidden;
   backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
 }
 
 .band-config-overlay {
@@ -143,6 +147,8 @@
   justify-items: center;
   gap: 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 246, 246, 0.94) 100%);
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .band-config-logo {
@@ -204,6 +210,62 @@
 .band-config-option input {
   width: 16px;
   height: 16px;
+}
+
+.band-config-instrument-volumes {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.band-config-volume-column {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  color: #161616;
+  font-weight: 800;
+}
+
+.band-config-volume-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.band-config-volume-label {
+  font-size: 0.78rem;
+  text-align: center;
+  min-height: 30px;
+}
+
+.band-config-volume-slider-vertical {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 18px;
+  height: 96px;
+  min-height: 96px;
+  -webkit-appearance: slider-vertical;
+  appearance: auto;
+}
+
+.band-config-volume-value {
+  font-size: 0.78rem;
+  color: #1d1d1d;
+  min-width: 38px;
+  text-align: center;
+}
+
+@media (max-width: 360px) {
+  .band-config-instrument-volumes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .band-config-exit {

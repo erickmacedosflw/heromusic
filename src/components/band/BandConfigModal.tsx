@@ -1,5 +1,13 @@
 import React from 'react';
 import './BandConfigModal.css';
+import type { Instrument } from '../../state/gameStore';
+
+type InstrumentVolumeControl = {
+  instrument: Instrument;
+  label: string;
+  icon: string;
+  value: number;
+};
 
 type BandConfigModalProps = {
   isVisible: boolean;
@@ -12,9 +20,11 @@ type BandConfigModalProps = {
   iconFechar: string;
   iconAudioOn: string;
   iconExitBand: string;
+  instrumentVolumeControls: InstrumentVolumeControl[];
   onClose: () => void;
   onToggleSfx: (enabled: boolean) => void;
   onToggleMusic: (enabled: boolean) => void;
+  onChangeInstrumentVolume: (instrument: Instrument, value: number) => void;
   onExitBand: () => void;
 };
 
@@ -29,9 +39,11 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
   iconFechar,
   iconAudioOn,
   iconExitBand,
+  instrumentVolumeControls,
   onClose,
   onToggleSfx,
   onToggleMusic,
+  onChangeInstrumentVolume,
   onExitBand,
 }) => {
   if (!isVisible) {
@@ -72,6 +84,28 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
             <input type="checkbox" checked={isMusicEnabled} onChange={(event) => onToggleMusic(event.target.checked)} />
             <span>Música</span>
           </label>
+          <div className="band-config-instrument-volumes">
+            {instrumentVolumeControls.map((control) => {
+              const sliderValue = Math.round(Math.max(0, Math.min(1, control.value)) * 100);
+              return (
+                <label className="band-config-volume-column" key={control.instrument}>
+                  <img src={control.icon} alt="" aria-hidden="true" className="band-config-volume-icon" />
+                  <span className="band-config-volume-label">{control.label}</span>
+                  <input
+                    className="band-config-volume-slider-vertical"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={sliderValue}
+                    onChange={(event) => onChangeInstrumentVolume(control.instrument, Number(event.target.value) / 100)}
+                    disabled={!isMusicEnabled}
+                  />
+                  <strong className="band-config-volume-value">{sliderValue}%</strong>
+                </label>
+              );
+            })}
+          </div>
           <button
             type="button"
             className="band-config-exit"

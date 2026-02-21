@@ -15,6 +15,7 @@ import palcosData from '../locals/palcos.json';
 import musicsData from '../locals/musics.json';
 import musicosData from '../locals/musicos.json';
 import { playUiClickSound } from '../utils/clickAudio';
+import { pauseThemeMusic } from '../utils/themeAudio';
 
 const instrumentLabels: Record<Instrument, string> = {
   guitar: 'Guitarra',
@@ -268,16 +269,16 @@ const getRhythmTone = (value: number) => {
 const INITIAL_BPM = 220;
 const METRONOME_BEAT_MS = 60000 / INITIAL_BPM;
 const METRONOME_HIT_WINDOW_MS = METRONOME_BEAT_MS * 0.28;
-const RHYTHM_PLAY_THRESHOLD = 31;
+const RHYTHM_PLAY_THRESHOLD = 18;
 const SHOW_FAME_REWARD = 5;
 const FANS_GAIN_BASE_RATE = 0.05;
 const FANS_GAIN_MAX_RATE = 0.3;
 const FANS_GAIN_STEP_RATE = 0.05;
 const FANS_GAIN_STEP_MS = 20000;
 const DEFAULT_MUSIC_BPM = 120;
-const PRE_MUSIC_TAP_GAIN = 2.2;
-const PRE_MUSIC_DECAY = 1.8;
-const POST_MUSIC_DECAY = 2.6;
+const PRE_MUSIC_TAP_GAIN = 6.2;
+const PRE_MUSIC_DECAY = 0.9;
+const POST_MUSIC_DECAY = 1.3;
 const CROWD_DECAY_WHEN_STOPPED = 1;
 const CROWD_DECAY_EVERY_STEPS = 1;
 const TAP_EFFECT_LIFETIME_MS = 140;
@@ -307,6 +308,15 @@ const instrumentNameById: Record<number, string> = {
   4: 'Teclado',
 };
 
+const instrumentPlaybackOrder: Instrument[] = ['drums', 'bass', 'guitar', 'keys'];
+const instrumentConfigOrder: Instrument[] = ['guitar', 'bass', 'drums', 'keys'];
+const instrumentIconByInstrument: Record<Instrument, string> = {
+  guitar: iconGuitarra,
+  drums: iconBateria,
+  bass: iconBaixo,
+  keys: iconTeclado,
+};
+
 const filterOptions: Array<{ id: HireFilter; label: string; icon: string }> = [
   { id: 'all', label: 'Todos', icon: iconTodos },
   { id: 'guitar', label: 'Guitarra', icon: iconGuitarra },
@@ -328,8 +338,10 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const score = useGameStore((state) => state.score);
   const isMusicEnabled = useGameStore((state) => state.audioSettings.musicEnabled);
   const isSfxEnabled = useGameStore((state) => state.audioSettings.sfxEnabled);
+  const instrumentVolumes = useGameStore((state) => state.audioSettings.instrumentVolumes);
   const setMusicEnabled = useGameStore((state) => state.setMusicEnabled);
   const setSfxEnabled = useGameStore((state) => state.setSfxEnabled);
+  const setInstrumentVolume = useGameStore((state) => state.setInstrumentVolume);
   const [hireFilter, setHireFilter] = useState<HireFilter>('all');
   const [rhythmMeter, setRhythmMeter] = useState(0);
   const [showCrowd, setShowCrowd] = useState(0);
@@ -347,6 +359,8 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const lastPulseAtRef = useRef<number | null>(null);
   const metronomeStartAtRef = useRef(Date.now());
   const garageAudioRef = useRef<Howl | null>(null);
+  const stageStemAudiosRef = useRef<Partial<Record<Instrument, Howl>>>({});
+  const stagePlaybackSecRef = useRef(0);
   const isMusicPlayingRef = useRef(false);
   const rhythmStreakRef = useRef(0);
   const rhythmBonusRef = useRef(1);
@@ -356,6 +370,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const metronomeBeatIndexRef = useRef(-1);
   const beatHitTimeoutRef = useRef<number | null>(null);
   const loopTransitionTimeoutRef = useRef<number | null>(null);
+  const stagePlayPendingRef = useRef(false);
   const rhythmMeterRef = useRef(0);
   const hasActiveMusiciansRef = useRef(false);
   const isMusicEnabledRef = useRef(true);
@@ -616,28 +631,100 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const isBandManagementScreenVisible = isBandManagementOpen || isClosingBandManagement;
   const isBandConfigVisible = isBandConfigOpen || isClosingBandConfig;
 
-  const selectedMusicStream = useMemo(
-    () => resolveMusicStreamAsset(selectedMusic?.stream ?? ''),
-    [selectedMusic]
-  );
+  const selectedMusicStems = useMemo(() => {
+    return {
+      guitar: resolveMusicStreamAsset(selectedMusic?.eletricguitar ?? ''),
+      bass: resolveMusicStreamAsset(selectedMusic?.bass ?? ''),
+      drums: resolveMusicStreamAsset(selectedMusic?.drums ?? ''),
+      keys: resolveMusicStreamAsset(selectedMusic?.keys ?? ''),
+    } as Record<Instrument, string | null>;
+  }, [selectedMusic]);
 
-  const attemptStageAudioPlay = () => {
-    const stageAudio = garageAudioRef.current;
-    if (!stageAudio) {
+  const activeBandInstruments = useMemo(() => {
+    if (!activeBand) {
+      return [] as Instrument[];
+    }
+
+    return instrumentPlaybackOrder.filter((instrument) => {
+      const slot = activeBand.musicians[instrument];
+      return slot.hired && slot.musicianId !== null;
+    });
+  }, [
+    activeBand?.musicians.guitar.hired,
+    activeBand?.musicians.guitar.musicianId,
+    activeBand?.musicians.bass.hired,
+    activeBand?.musicians.bass.musicianId,
+    activeBand?.musicians.drums.hired,
+    activeBand?.musicians.drums.musicianId,
+    activeBand?.musicians.keys.hired,
+    activeBand?.musicians.keys.musicianId,
+  ]);
+
+  const activeBandInstrumentsKey = activeBandInstruments.join('|');
+  const instrumentVolumeControls = useMemo(() => {
+    return instrumentConfigOrder.map((instrument) => ({
+      instrument,
+      label: instrumentLabels[instrument],
+      icon: instrumentIconByInstrument[instrument],
+      value: instrumentVolumes[instrument] ?? 1,
+    }));
+  }, [instrumentVolumes]);
+
+  useEffect(() => {
+    pauseThemeMusic();
+  }, []);
+
+  const getStageAudios = () =>
+    Object.values(stageStemAudiosRef.current).filter((audio): audio is Howl => Boolean(audio));
+
+  const pauseStageAudios = () => {
+    const stageAudios = getStageAudios();
+    if (stageAudios.length === 0) {
       return;
     }
+
+    const primaryAudio = garageAudioRef.current ?? stageAudios[0];
+    stagePlaybackSecRef.current = getHowlCurrentTime(primaryAudio);
+
+    stageAudios.forEach((audio) => {
+      if (audio.playing()) {
+        audio.pause();
+      }
+    });
+  };
+
+  const attemptStageAudioPlay = () => {
+    const stageAudios = getStageAudios();
+    if (stageAudios.length === 0) {
+      return;
+    }
+
+    const stageAudio = garageAudioRef.current ?? stageAudios[0];
+    garageAudioRef.current = stageAudio;
 
     if (!hasActiveMusiciansRef.current || !isMusicEnabledRef.current) {
       return;
     }
 
-    if (rhythmMeterRef.current <= RHYTHM_PLAY_THRESHOLD || stageAudio.playing()) {
+    if (rhythmMeterRef.current <= RHYTHM_PLAY_THRESHOLD) {
+      return;
+    }
+
+    const baseTime = Math.max(stagePlaybackSecRef.current, getHowlCurrentTime(stageAudio));
+
+    if (stagePlayPendingRef.current || isMusicPlayingRef.current || stageAudio.playing()) {
       return;
     }
 
     Howler.autoSuspend = false;
     void Howler.ctx?.resume();
-    stageAudio.play();
+
+    stagePlayPendingRef.current = true;
+
+    stageAudios.forEach((audio) => {
+      audio.seek(baseTime);
+      audio.play();
+    });
   };
 
   if (!activeBand) {
@@ -1056,7 +1143,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       }
     }
 
-    const gainBase = onBeat ? 4 : beatDistance <= metronomeHitWindowMs * 2 ? 2 : 1;
+    const gainBase = onBeat ? 8 : beatDistance <= metronomeHitWindowMs * 2 ? 5 : 3;
     const gain = Math.ceil(gainBase * rhythmBonusRef.current);
     setRhythmMeter((current) => Math.min(100, current + gain));
   };
@@ -1325,20 +1412,31 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   useEffect(() => {
     setSongDurationSec(0);
     setSongCurrentSec(0);
+    const stemEntries = activeBandInstruments
+      .map((instrument) => ({ instrument, src: selectedMusicStems[instrument] }))
+      .filter((entry): entry is { instrument: Instrument; src: string } => Boolean(entry.src));
 
-    const stageAudio = selectedMusicStream
-      ? new Howl({
-        src: [selectedMusicStream],
+    const stageStemAudios: Partial<Record<Instrument, Howl>> = {};
+    stemEntries.forEach(({ instrument, src }) => {
+      stageStemAudios[instrument] = new Howl({
+        src: [src],
         preload: 'metadata',
         html5: true,
-        volume: isMusicEnabled ? 1 : 0,
-      })
-      : null;
+        pool: 1,
+        volume: isMusicEnabled ? (instrumentVolumes[instrument] ?? 1) : 0,
+      });
+    });
+
+    stageStemAudiosRef.current = stageStemAudios;
+
+    const stageAudio = instrumentPlaybackOrder
+      .map((instrument) => stageStemAudios[instrument])
+      .find((audio): audio is Howl => Boolean(audio)) ?? null;
+
+    garageAudioRef.current = stageAudio;
 
     if (stageAudio) {
-      garageAudioRef.current = stageAudio;
-    } else {
-      garageAudioRef.current = null;
+      stagePlaybackSecRef.current = Math.max(0, Math.min(stagePlaybackSecRef.current, stageAudio.duration() || stagePlaybackSecRef.current));
     }
 
     const handleLoadedMetadata = () => {
@@ -1353,6 +1451,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const handleAudioSeek = () => {
       if (stageAudio) {
         const currentTime = getHowlCurrentTime(stageAudio);
+        stagePlaybackSecRef.current = currentTime;
         setSongCurrentSec(currentTime);
         if (stageAudio.playing() && currentTime > 0 && !isMusicPlayingRef.current) {
           setIsMusicPlaying(true);
@@ -1361,12 +1460,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     };
 
     const handleAudioPlay = () => {
+      stagePlayPendingRef.current = false;
       metronomeStartAtRef.current = Date.now();
       metronomeBeatIndexRef.current = -1;
       setIsMusicPlaying(true);
     };
 
     const handleAudioPause = () => {
+      stagePlayPendingRef.current = false;
       setIsMusicPlaying(false);
       setMetronomeTick(false);
       metronomeBeatIndexRef.current = -1;
@@ -1374,10 +1475,12 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
     const handleAudioEnded = () => {
       setSongCurrentSec(stageAudio ? stageAudio.duration() : 0);
+      stagePlaybackSecRef.current = 0;
       handleAudioPause();
     };
 
     const handlePlayError = () => {
+      stagePlayPendingRef.current = false;
       setIsMusicPlaying(false);
       setMetronomeTick(false);
       metronomeBeatIndexRef.current = -1;
@@ -1403,6 +1506,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const decay = window.setInterval(() => {
       if (stageAudio) {
         const currentTime = getHowlCurrentTime(stageAudio);
+        stagePlaybackSecRef.current = currentTime;
         setSongCurrentSec(currentTime);
         if (stageAudio.playing() && currentTime > 0 && !isMusicPlayingRef.current) {
           setIsMusicPlaying(true);
@@ -1439,26 +1543,33 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       if (beatHitTimeoutRef.current) {
         window.clearTimeout(beatHitTimeoutRef.current);
       }
+      stagePlayPendingRef.current = false;
       stageAudio?.off('load', handleLoadedMetadata);
       stageAudio?.off('play', handleAudioPlay);
       stageAudio?.off('pause', handleAudioPause);
       stageAudio?.off('end', handleAudioEnded);
       stageAudio?.off('seek', handleAudioSeek);
       stageAudio?.off('playerror', handlePlayError);
-      stageAudio?.stop();
-      stageAudio?.unload();
+      pauseStageAudios();
+      getStageAudios().forEach((audio) => {
+        audio.stop();
+        audio.unload();
+      });
+      stageStemAudiosRef.current = {};
       garageAudioRef.current = null;
     };
-  }, [selectedMusicStream]);
+  }, [selectedMusicStems, activeBandInstrumentsKey]);
 
   useEffect(() => {
-    const stageAudio = garageAudioRef.current;
-    if (!stageAudio) {
-      return;
-    }
+    instrumentPlaybackOrder.forEach((instrument) => {
+      const audio = stageStemAudiosRef.current[instrument];
+      if (!audio) {
+        return;
+      }
 
-    stageAudio.volume(isMusicEnabled ? 1 : 0);
-  }, [isMusicEnabled]);
+      audio.volume(isMusicEnabled ? (instrumentVolumes[instrument] ?? 1) : 0);
+    });
+  }, [isMusicEnabled, instrumentVolumes]);
 
   useEffect(() => {
     if (!isMusicPlaying) {
@@ -1529,9 +1640,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     }
 
     if (!hasActiveMusicians) {
-      if (stageAudio.playing()) {
-        stageAudio.pause();
-      }
+      pauseStageAudios();
       setIsMusicPlaying(false);
       setMetronomeTick(false);
       metronomeBeatIndexRef.current = -1;
@@ -1543,9 +1652,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       return;
     }
 
-    if (stageAudio.playing()) {
-      stageAudio.pause();
-    }
+    pauseStageAudios();
     setIsMusicPlaying(false);
     setMetronomeTick(false);
     metronomeBeatIndexRef.current = -1;
@@ -1592,12 +1699,10 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     };
 
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
-    window.addEventListener('touchstart', unlockAudio, { passive: true });
     window.addEventListener('keydown', unlockAudio);
 
     return () => {
       window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };
   }, []);
@@ -1753,9 +1858,11 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         iconFechar={iconFechar}
         iconAudioOn={iconAudioOn}
         iconExitBand={iconExitBand}
+        instrumentVolumeControls={instrumentVolumeControls}
         onClose={closeBandConfig}
         onToggleSfx={setSfxEnabled}
         onToggleMusic={setMusicEnabled}
+        onChangeInstrumentVolume={setInstrumentVolume}
         onExitBand={() => {
           closeBandConfig();
           onBackToMenu();

@@ -36,6 +36,7 @@ type CreationState = {
 type AudioSettings = {
   musicEnabled: boolean;
   sfxEnabled: boolean;
+  instrumentVolumes: Record<Instrument, number>;
 };
 
 interface GameState {
@@ -57,6 +58,7 @@ interface GameState {
   setCreationName: (name: string) => void;
   setMusicEnabled: (enabled: boolean) => void;
   setSfxEnabled: (enabled: boolean) => void;
+  setInstrumentVolume: (instrument: Instrument, volume: number) => void;
   createBandFromDraft: () => void;
   selectBand: (bandId: string) => void;
   setCurrentStage: (stageId: number) => void;
@@ -88,6 +90,12 @@ const getDefaultCreation = (): CreationState => ({
 const getDefaultAudioSettings = (): AudioSettings => ({
   musicEnabled: true,
   sfxEnabled: true,
+  instrumentVolumes: {
+    guitar: 1,
+    drums: 1,
+    bass: 1,
+    keys: 1,
+  },
 });
 
 const getBandUnlockedMusicianIds = (band: Band) => {
@@ -157,6 +165,16 @@ export const useGameStore = create<GameState>()(
           audioSettings: {
             ...state.audioSettings,
             sfxEnabled: enabled,
+          },
+        })),
+      setInstrumentVolume: (instrument, volume) =>
+        set((state) => ({
+          audioSettings: {
+            ...state.audioSettings,
+            instrumentVolumes: {
+              ...state.audioSettings.instrumentVolumes,
+              [instrument]: Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 1)),
+            },
           },
         })),
       createBandFromDraft: () => {
@@ -436,7 +454,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'hero-music-save-v1',
-      version: 2,
+      version: 3,
       migrate: (persistedState: unknown) => {
         if (!persistedState || typeof persistedState !== 'object') {
           return persistedState as GameState;
@@ -444,14 +462,32 @@ export const useGameStore = create<GameState>()(
 
         const state = persistedState as {
           bands?: Array<Band & { fameStars?: number }>;
+          audioSettings?: Partial<AudioSettings>;
+        };
+
+        const defaultAudioSettings = getDefaultAudioSettings();
+        const rawInstrumentVolumes = state.audioSettings?.instrumentVolumes ?? {};
+        const migratedAudioSettings: AudioSettings = {
+          musicEnabled: state.audioSettings?.musicEnabled ?? defaultAudioSettings.musicEnabled,
+          sfxEnabled: state.audioSettings?.sfxEnabled ?? defaultAudioSettings.sfxEnabled,
+          instrumentVolumes: {
+            guitar: Math.max(0, Math.min(1, rawInstrumentVolumes.guitar ?? defaultAudioSettings.instrumentVolumes.guitar)),
+            drums: Math.max(0, Math.min(1, rawInstrumentVolumes.drums ?? defaultAudioSettings.instrumentVolumes.drums)),
+            bass: Math.max(0, Math.min(1, rawInstrumentVolumes.bass ?? defaultAudioSettings.instrumentVolumes.bass)),
+            keys: Math.max(0, Math.min(1, rawInstrumentVolumes.keys ?? defaultAudioSettings.instrumentVolumes.keys)),
+          },
         };
 
         if (!Array.isArray(state.bands)) {
-          return persistedState as GameState;
+          return {
+            ...state,
+            audioSettings: migratedAudioSettings,
+          } as GameState;
         }
 
         return {
           ...state,
+          audioSettings: migratedAudioSettings,
           bands: state.bands.map((band) => ({
             ...band,
             fameStars: Math.max(0, Math.floor(band.fameStars ?? 0)),
