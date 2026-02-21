@@ -48,12 +48,17 @@ export const pauseThemeMusic = () => {
   }
 };
 
-export const setupThemeMusicUnlock = () => {
+export const setupThemeMusicUnlock = (canPlayTheme?: () => boolean) => {
   if (typeof window === 'undefined') {
     return () => undefined;
   }
 
   const unlockAndPlay = () => {
+    if (canPlayTheme && !canPlayTheme()) {
+      pauseThemeMusic();
+      return;
+    }
+
     playThemeMusic();
   };
 

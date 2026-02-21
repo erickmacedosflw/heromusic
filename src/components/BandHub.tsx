@@ -68,6 +68,7 @@ const integerFormatter = new Intl.NumberFormat('pt-BR', {
 
 const formatInteger = (value: number) => integerFormatter.format(Math.max(0, Math.floor(value)));
 const formatMoney = (value: number) => `R$ ${formatInteger(value)}`;
+const appBuildVersion = __APP_BUILD_VERSION__;
 
 const resolveStageAsset = (assetPath: string) => {
   if (!assetPath || !assetPath.startsWith('src/')) {
@@ -164,6 +165,9 @@ const BandHub: React.FC<BandHubProps> = ({ onStartGame, isMusicEnabled, onToggle
     return (
       <section className="onboarding-screen menu-scene menu-clean" style={{ backgroundImage: `url(${menuBackground})` }}>
         {renderAudioToggle()}
+        <span className="menu-build-version" aria-label={`Versão do jogo ${appBuildVersion}`}>
+          v {appBuildVersion}
+        </span>
         <motion.div className="backdrop menu-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
         <div className="menu-shell">
           <motion.header

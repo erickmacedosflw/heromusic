@@ -400,6 +400,22 @@ input {
   z-index: 12;
 }
 
+.menu-build-version {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 12;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.32);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 .menu-audio-toggle img {
   width: 100%;
   height: 100%;
@@ -1006,6 +1022,12 @@ input {
 
   .onboarding-screen {
     padding: 12px;
+  }
+
+  .menu-build-version {
+    right: 8px;
+    bottom: 8px;
+    font-size: 0.58rem;
   }
 
   .onboarding-layout {

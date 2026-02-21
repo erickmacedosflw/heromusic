@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import BootScene from './game/scenes/BootScene';
 import BandHub from './components/BandHub';
 import BandGame from './components/BandGame';
@@ -13,6 +13,16 @@ const App: React.FC = () => {
     const activeBandId = useGameStore((state) => state.activeBandId);
     const isMusicEnabled = useGameStore((state) => state.audioSettings.musicEnabled);
     const setMusicEnabled = useGameStore((state) => state.setMusicEnabled);
+    const sceneRef = useRef(currentScene);
+    const musicEnabledRef = useRef(isMusicEnabled);
+
+    useEffect(() => {
+        sceneRef.current = currentScene;
+    }, [currentScene]);
+
+    useEffect(() => {
+        musicEnabledRef.current = isMusicEnabled;
+    }, [isMusicEnabled]);
 
     useEffect(() => {
         if (isLoaded) {
@@ -32,7 +42,7 @@ const App: React.FC = () => {
 
         if (shouldPlayTheme) {
             playThemeMusic();
-            const cleanupUnlock = setupThemeMusicUnlock();
+            const cleanupUnlock = setupThemeMusicUnlock(() => sceneRef.current === 'menu' && musicEnabledRef.current);
             return cleanupUnlock;
         }
 
@@ -42,6 +52,7 @@ const App: React.FC = () => {
     useEffect(() => {
         const resumeThemeIfNeeded = () => {
             if (currentScene !== 'menu' || !isMusicEnabled) {
+                pauseThemeMusic();
                 return;
             }
 
@@ -70,6 +81,41 @@ const App: React.FC = () => {
             window.removeEventListener('pageshow', handlePageShow);
         };
     }, [currentScene, isMusicEnabled]);
+
+    useEffect(() => {
+        const enforceThemeByScene = () => {
+            const shouldPlayTheme = sceneRef.current === 'menu' && musicEnabledRef.current;
+
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                return;
+            }
+
+            if (shouldPlayTheme) {
+                playThemeMusic();
+                return;
+            }
+
+            pauseThemeMusic();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                enforceThemeByScene();
+            }
+        };
+
+        const handlePageShow = () => {
+            enforceThemeByScene();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, []);
 
     useEffect(() => {
         return () => {
