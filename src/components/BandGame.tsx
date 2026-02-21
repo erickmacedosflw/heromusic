@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 import { useGameStore, type Instrument } from '../state/gameStore';
 import BandConfigModal from './band/BandConfigModal';
 import BandManagementScreen from './band/BandManagementScreen';
@@ -268,7 +268,7 @@ const getRhythmTone = (value: number) => {
 const INITIAL_BPM = 220;
 const METRONOME_BEAT_MS = 60000 / INITIAL_BPM;
 const METRONOME_HIT_WINDOW_MS = METRONOME_BEAT_MS * 0.28;
-const RHYTHM_PLAY_THRESHOLD = 45;
+const RHYTHM_PLAY_THRESHOLD = 31;
 const SHOW_FAME_REWARD = 5;
 const FANS_GAIN_BASE_RATE = 0.05;
 const FANS_GAIN_MAX_RATE = 0.3;
@@ -356,6 +356,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const metronomeBeatIndexRef = useRef(-1);
   const beatHitTimeoutRef = useRef<number | null>(null);
   const loopTransitionTimeoutRef = useRef<number | null>(null);
+  const rhythmMeterRef = useRef(0);
+  const hasActiveMusiciansRef = useRef(false);
+  const isMusicEnabledRef = useRef(true);
   const stageVideoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const topFansRef = useRef<HTMLDivElement | null>(null);
@@ -617,6 +620,25 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     () => resolveMusicStreamAsset(selectedMusic?.stream ?? ''),
     [selectedMusic]
   );
+
+  const attemptStageAudioPlay = () => {
+    const stageAudio = garageAudioRef.current;
+    if (!stageAudio) {
+      return;
+    }
+
+    if (!hasActiveMusiciansRef.current || !isMusicEnabledRef.current) {
+      return;
+    }
+
+    if (rhythmMeterRef.current <= RHYTHM_PLAY_THRESHOLD || stageAudio.playing()) {
+      return;
+    }
+
+    Howler.autoSuspend = false;
+    void Howler.ctx?.resume();
+    stageAudio.play();
+  };
 
   if (!activeBand) {
     return (
@@ -1359,6 +1381,12 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       setIsMusicPlaying(false);
       setMetronomeTick(false);
       metronomeBeatIndexRef.current = -1;
+      stageAudio.once('unlock', () => {
+        attemptStageAudioPlay();
+      });
+      window.setTimeout(() => {
+        attemptStageAudioPlay();
+      }, 140);
     };
 
     stageAudio?.on('load', handleLoadedMetadata);
@@ -1483,6 +1511,18 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [isMusicPlaying]);
 
   useEffect(() => {
+    rhythmMeterRef.current = rhythmMeter;
+  }, [rhythmMeter]);
+
+  useEffect(() => {
+    hasActiveMusiciansRef.current = hasActiveMusicians;
+  }, [hasActiveMusicians]);
+
+  useEffect(() => {
+    isMusicEnabledRef.current = isMusicEnabled;
+  }, [isMusicEnabled]);
+
+  useEffect(() => {
     const stageAudio = garageAudioRef.current;
     if (!stageAudio) {
       return;
@@ -1499,9 +1539,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     }
 
     if (rhythmMeter > RHYTHM_PLAY_THRESHOLD) {
-      if (!stageAudio.playing()) {
-        stageAudio.play();
-      }
+      attemptStageAudioPlay();
       return;
     }
 
@@ -1524,11 +1562,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         return;
       }
 
-      if (rhythmMeter <= RHYTHM_PLAY_THRESHOLD || stageAudio.playing()) {
-        return;
-      }
-
-      stageAudio.play();
+      attemptStageAudioPlay();
     };
 
     const handleVisibilityChange = () => {
@@ -1549,6 +1583,24 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       window.removeEventListener('pageshow', handlePageShow);
     };
   }, [rhythmMeter, hasActiveMusicians, isMusicEnabled]);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      Howler.autoSuspend = false;
+      void Howler.ctx?.resume();
+      attemptStageAudioPlay();
+    };
+
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   return (
     <section
