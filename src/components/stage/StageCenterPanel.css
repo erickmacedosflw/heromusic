@@ -343,11 +343,23 @@
   align-items: flex-end;
 }
 
+.rhythm-start-marker {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 234, 136, 0.98);
+  box-shadow: 0 0 8px rgba(255, 220, 102, 0.75);
+  z-index: 2;
+}
+
 .rhythm-side-fill {
   width: 100%;
   height: 0;
   border-radius: 0;
   transition: height 0.18s linear;
+  z-index: 1;
 }
 
 .rhythm-side-icon {
@@ -400,6 +412,11 @@
     width: 16px;
     height: 196px;
     margin-bottom: -14px;
+  }
+
+  .rhythm-start-marker {
+    left: -2px;
+    right: -2px;
   }
 
   .rhythm-side-icon {

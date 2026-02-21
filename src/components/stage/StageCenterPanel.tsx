@@ -25,6 +25,7 @@ type StageCenterPanelProps = {
   rhythmBonus: number;
   bonusFlash: boolean;
   rhythmMeter: number;
+  musicStartThreshold: number;
   rhythmTone: string;
   bandCostValue: number;
   formatNumber: (value: number) => string;
@@ -58,6 +59,7 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
   rhythmBonus,
   bonusFlash,
   rhythmMeter,
+  musicStartThreshold,
   rhythmTone,
   bandCostValue,
   formatNumber,
@@ -128,6 +130,7 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
           {rhythmBonus > 1 ? `Bônus x${rhythmBonus.toFixed(1)}` : 'Sem bônus'}
         </div>
         <div className="rhythm-side-track">
+          <span className="rhythm-start-marker" style={{ bottom: `${musicStartThreshold}%` }} />
           <span className="rhythm-side-fill" style={{ height: `${rhythmMeter}%`, background: rhythmTone }} />
         </div>
         <img src={iconRhythmWhite} alt="Ritmo" className="rhythm-side-icon" />

@@ -1800,6 +1800,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         rhythmBonus={rhythmBonus}
         bonusFlash={bonusFlash}
         rhythmMeter={rhythmMeter}
+        musicStartThreshold={RHYTHM_PLAY_THRESHOLD}
         rhythmTone={getRhythmTone(rhythmMeter)}
         bandCostValue={bandCostValue}
         formatNumber={formatNumber}
