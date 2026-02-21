@@ -121,18 +121,19 @@
 
 .rhythm-tap-pulse {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
-  border: 2px solid rgba(173, 255, 111, 0.85);
-  background: rgba(173, 255, 111, 0.25);
+  border: 3px solid rgba(173, 255, 111, 0.92);
+  background: rgba(173, 255, 111, 0.32);
+  box-shadow: 0 0 0 3px rgba(173, 255, 111, 0.2), 0 0 18px rgba(173, 255, 111, 0.34);
   transform: translate(-50%, -50%) scale(0.4);
-  animation: rhythmPulse 0.16s ease-out forwards;
+  animation: rhythmPulse 0.22s ease-out forwards;
 }
 
 @keyframes rhythmPulse {
   to {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(2.2);
+    transform: translate(-50%, -50%) scale(2.8);
   }
 }

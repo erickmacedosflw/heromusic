@@ -1513,6 +1513,43 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     metronomeBeatIndexRef.current = -1;
   }, [rhythmMeter, hasActiveMusicians]);
 
+  useEffect(() => {
+    const tryResumeStageMusic = () => {
+      const stageAudio = garageAudioRef.current;
+      if (!stageAudio || !isMusicEnabled || !hasActiveMusicians) {
+        return;
+      }
+
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
+      if (rhythmMeter <= RHYTHM_PLAY_THRESHOLD || stageAudio.playing()) {
+        return;
+      }
+
+      stageAudio.play();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tryResumeStageMusic();
+      }
+    };
+
+    const handlePageShow = () => {
+      tryResumeStageMusic();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [rhythmMeter, hasActiveMusicians, isMusicEnabled]);
+
   return (
     <section
       className="game-screen stage-screen"

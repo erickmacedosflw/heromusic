@@ -40,6 +40,38 @@ const App: React.FC = () => {
     }, [currentScene, isMusicEnabled]);
 
     useEffect(() => {
+        const resumeThemeIfNeeded = () => {
+            if (currentScene !== 'menu' || !isMusicEnabled) {
+                return;
+            }
+
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                return;
+            }
+
+            playThemeMusic();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                resumeThemeIfNeeded();
+            }
+        };
+
+        const handlePageShow = () => {
+            resumeThemeIfNeeded();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, [currentScene, isMusicEnabled]);
+
+    useEffect(() => {
         return () => {
             disposeThemeMusic();
         };
