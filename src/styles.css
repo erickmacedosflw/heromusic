@@ -970,11 +970,11 @@ input {
   position: absolute;
   --parallax-x-mult: 0.3;
   --parallax-y-mult: 0.3;
-  --zoom-mult: 0.06;
   --performer-depth-blur: 0px;
   --performer-depth-opacity: 1;
   --performer-depth-sat: 1;
   --performer-depth-bright: 1;
+  --performer-camera-scale: 1;
   transform:
     translateX(-50%)
     translate3d(
@@ -982,7 +982,7 @@ input {
       calc(var(--stage-camera-shift-y) * var(--parallax-y-mult)),
       0
     )
-    scale(calc(var(--stage-camera-zoom) + (var(--stage-camera-zoom) - 1) * var(--zoom-mult)));
+    scale(var(--performer-camera-scale));
   transform-origin: center bottom;
   will-change: transform, filter, opacity;
   transition: transform 200ms ease, filter 200ms ease, opacity 200ms ease;
@@ -1046,7 +1046,6 @@ input {
 .stage-performer-drums {
   --parallax-x-mult: 0.22;
   --parallax-y-mult: 0.2;
-  --zoom-mult: 0.12;
   left: 50%;
   bottom: 176px;
   z-index: 1;
@@ -1065,7 +1064,6 @@ input {
 .stage-performer-guitar {
   --parallax-x-mult: 0.48;
   --parallax-y-mult: 0.34;
-  --zoom-mult: 0.08;
   left: 28%;
   bottom: 116px;
   z-index: 2;
@@ -1084,7 +1082,6 @@ input {
 .stage-performer-bass {
   --parallax-x-mult: 0.48;
   --parallax-y-mult: 0.34;
-  --zoom-mult: 0.08;
   left: 72%;
   bottom: 116px;
   z-index: 2;
@@ -1103,7 +1100,6 @@ input {
 .stage-performer-keys {
   --parallax-x-mult: 0.66;
   --parallax-y-mult: 0.46;
-  --zoom-mult: 0.12;
   left: 50%;
   bottom: 62px;
   z-index: 3;

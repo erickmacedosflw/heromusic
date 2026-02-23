@@ -1875,6 +1875,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
                   ['--performer-depth-opacity' as string]: '1',
                   ['--performer-depth-sat' as string]: '1',
                   ['--performer-depth-bright' as string]: '1',
+                  ['--performer-camera-scale' as string]: '1',
                 } as React.CSSProperties;
               }
 
@@ -1883,6 +1884,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
               const behindDistance = Math.max(0, focusDepth - performerDepth);
               const behindFactor = Math.min(1, behindDistance / 0.86);
               const zoomWeight = 0.58 + stageZoomLevel * 0.7;
+              const depthScale = 0.92 + performerDepth * 0.26;
+              const focusBoost = focusedPerformerInstrument === performer.instrument ? 0.14 : 0;
+              const performerCameraScale = 1 + stageZoomLevel * (0.06 + depthScale * 0.24 + focusBoost);
 
               const blurAmount = focusedPerformerInstrument === performer.instrument
                 ? Math.max(0, stageDepthBlur * 0.08)
@@ -1905,6 +1909,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
                 ['--performer-depth-opacity' as string]: dimFactor.toFixed(3),
                 ['--performer-depth-sat' as string]: saturationFactor.toFixed(3),
                 ['--performer-depth-bright' as string]: brightnessFactor.toFixed(3),
+                ['--performer-camera-scale' as string]: performerCameraScale.toFixed(4),
               } as React.CSSProperties;
             })()}
           >
