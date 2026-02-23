@@ -32,16 +32,67 @@ const performerPositions: Record<StagePerformerInstrument, THREE.Vector3> = {
   keys: new THREE.Vector3(0, 1, 2.5),
 };
 
-const shuffleInstruments = (items: StagePerformerInstrument[]) => {
-  const cloned = [...items];
-  for (let index = cloned.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    const temp = cloned[index];
-    cloned[index] = cloned[randomIndex];
-    cloned[randomIndex] = temp;
-  }
+type CameraShot = {
+  instrument: StagePerformerInstrument | null;
+  pos: THREE.Vector3;
+  look: THREE.Vector3;
+  fov: number;
+  duration: number;
+};
 
-  return cloned;
+const generalShot: CameraShot = {
+  instrument: null,
+  pos: new THREE.Vector3(0, 4.15, 8.35),
+  look: new THREE.Vector3(0, 1.05, -0.1),
+  fov: 58,
+  duration: 1.6,
+};
+
+const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
+  guitar: {
+    instrument: 'guitar',
+    pos: new THREE.Vector3(-2.2, 2.32, 2.55),
+    look: new THREE.Vector3(-2.08, 1.12, -0.78),
+    fov: 24,
+    duration: 2.85,
+  },
+  bass: {
+    instrument: 'bass',
+    pos: new THREE.Vector3(2.2, 2.32, 2.55),
+    look: new THREE.Vector3(2.08, 1.12, -0.78),
+    fov: 24,
+    duration: 2.85,
+  },
+  drums: {
+    instrument: 'drums',
+    pos: new THREE.Vector3(0, 3.05, 2.18),
+    look: new THREE.Vector3(0, 1.2, -1.7),
+    fov: 22,
+    duration: 2.95,
+  },
+  keys: {
+    instrument: 'keys',
+    pos: new THREE.Vector3(0, 2.06, 2.1),
+    look: new THREE.Vector3(0, 1.15, 0.88),
+    fov: 23,
+    duration: 2.8,
+  },
+};
+
+const buildShotQueue = (activeInstruments: StagePerformerInstrument[]) => {
+  const sequenceOrder: StagePerformerInstrument[] = ['guitar', 'drums', 'bass', 'keys'];
+  const queue: CameraShot[] = [];
+
+  sequenceOrder.forEach((instrument) => {
+    if (!activeInstruments.includes(instrument)) {
+      return;
+    }
+
+    queue.push(focusShotByInstrument[instrument]);
+    queue.push(generalShot);
+  });
+
+  return queue.length ? queue : [generalShot];
 };
 
 const Stage3DScene: React.FC<Stage3DSceneProps> = ({
@@ -58,13 +109,17 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   const onShadowFrameRef = useRef(onShadowFrame);
 
   const currentFocusedInstrumentRef = useRef<StagePerformerInstrument | null>(null);
-  const isCinematicModeRef = useRef(false);
-  const sequenceOrderRef = useRef<StagePerformerInstrument[]>([]);
-  const sequenceIndexRef = useRef(0);
+  const shotQueueRef = useRef<CameraShot[]>([]);
+  const shotIndexRef = useRef(0);
+  const currentShotRef = useRef<CameraShot>(generalShot);
+  const fromShotPosRef = useRef(baseCameraPosition.clone());
+  const fromShotLookRef = useRef(baseLookAtPosition.clone());
+  const fromShotFovRef = useRef(58);
+  const currentLookRef = useRef(baseLookAtPosition.clone());
+  const currentFovRef = useRef(58);
   const shotEndsAtRef = useRef(0);
   const shotStartedAtRef = useRef(0);
-  const shotDurationRef = useRef(0);
-  const isWideShotRef = useRef(true);
+  const shotMoveDurationRef = useRef(1.15);
   const lastShadowFrameSentAtRef = useRef(0);
   const lastCameraFrameSentAtRef = useRef(0);
 
@@ -219,44 +274,27 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       currentFocusedInstrumentRef.current = instrument;
     };
 
-    const setCinematicMode = (isCinematic: boolean) => {
-      isCinematicModeRef.current = isCinematic;
-    };
-
-    const nextFocusInstrument = (elapsed: number) => {
-      const playableInstruments = activeInstrumentsRef.current;
-      if (!playableInstruments.length) {
-        setFocusedInstrument(null);
-        setCinematicMode(false);
-        sequenceOrderRef.current = [];
-        sequenceIndexRef.current = 0;
-        isWideShotRef.current = true;
-        shotStartedAtRef.current = elapsed;
-        shotDurationRef.current = 2;
-        shotEndsAtRef.current = elapsed + shotDurationRef.current;
-        return;
+    const applyNextShot = (elapsed: number, cameraObject: THREE.PerspectiveCamera) => {
+      const activeQueue = shotQueueRef.current;
+      if (!activeQueue.length) {
+        shotQueueRef.current = [generalShot];
       }
 
-      if (!sequenceOrderRef.current.length || sequenceIndexRef.current >= sequenceOrderRef.current.length) {
-        sequenceOrderRef.current = shuffleInstruments(playableInstruments);
-        sequenceIndexRef.current = 0;
-        isWideShotRef.current = true;
-        setFocusedInstrument(null);
-        setCinematicMode(false);
-        shotStartedAtRef.current = elapsed;
-        shotDurationRef.current = 1.9;
-        shotEndsAtRef.current = elapsed + shotDurationRef.current;
-        return;
-      }
+      const queue = shotQueueRef.current;
+      const nextIndex = shotIndexRef.current % queue.length;
+      const nextShot = queue[nextIndex];
+      shotIndexRef.current = (nextIndex + 1) % queue.length;
 
-      const nextInstrument = sequenceOrderRef.current[sequenceIndexRef.current];
-      sequenceIndexRef.current += 1;
-      isWideShotRef.current = false;
-      setFocusedInstrument(nextInstrument);
-      setCinematicMode(true);
+      fromShotPosRef.current.copy(cameraObject.position);
+      fromShotLookRef.current.copy(currentLookRef.current);
+      fromShotFovRef.current = currentFovRef.current;
+
+      currentShotRef.current = nextShot;
+      setFocusedInstrument(nextShot.instrument);
+
       shotStartedAtRef.current = elapsed;
-      shotDurationRef.current = 3.05;
-      shotEndsAtRef.current = elapsed + shotDurationRef.current;
+      shotMoveDurationRef.current = nextShot.instrument ? 1.22 : 1.05;
+      shotEndsAtRef.current = elapsed + nextShot.duration;
     };
 
     const animate = () => {
@@ -270,64 +308,54 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       frontKeyLight.target.updateMatrixWorld();
 
       if (!playing) {
+        shotQueueRef.current = [generalShot];
+        shotIndexRef.current = 0;
+        currentShotRef.current = generalShot;
         setFocusedInstrument(null);
-        setCinematicMode(false);
-        isWideShotRef.current = true;
-        sequenceOrderRef.current = [];
-        sequenceIndexRef.current = 0;
-        shotEndsAtRef.current = 0;
-        shotStartedAtRef.current = 0;
-        shotDurationRef.current = 0;
+        fromShotPosRef.current.copy(camera.position);
+        fromShotLookRef.current.copy(currentLookRef.current);
+        fromShotFovRef.current = camera.fov;
+        shotStartedAtRef.current = elapsed;
+        shotMoveDurationRef.current = 0.9;
+        shotEndsAtRef.current = elapsed + 0.9;
       } else if (!shotEndsAtRef.current || elapsed >= shotEndsAtRef.current) {
-        nextFocusInstrument(elapsed);
+        shotQueueRef.current = buildShotQueue(activeInstrumentsRef.current);
+        applyNextShot(elapsed, camera);
       }
 
-      const defaultSwaySpeed = playing ? 0.58 : 0.2;
-      const defaultSwayX = playing ? 0.4 : 0.24;
-      const defaultSwayZ = playing ? 0.22 : 0.12;
+      const shot = currentShotRef.current;
+      const shotElapsed = Math.max(0, elapsed - shotStartedAtRef.current);
+      const moveDuration = Math.max(0.1, shotMoveDurationRef.current);
+      const moveProgress = Math.min(1, shotElapsed / moveDuration);
+      const easeProgress = moveProgress * moveProgress * (3 - 2 * moveProgress);
+      const isCloseShot = Boolean(shot.instrument);
+      const handAmount = isCloseShot ? 0.015 : 0.006;
 
-      if (playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current) {
-        const focusInstrument = currentFocusedInstrumentRef.current;
-        const focusPosition = performerPositions[focusInstrument];
-        const widePose = new THREE.Vector3(
-          Math.sin(elapsed * defaultSwaySpeed) * defaultSwayX,
-          4.9 + Math.sin(elapsed * (defaultSwaySpeed * 0.56)) * 0.16,
-          10.45 + Math.cos(elapsed * (defaultSwaySpeed * 0.44)) * defaultSwayZ
-        );
-        const closePose = new THREE.Vector3(
-          focusPosition.x * 0.7 + Math.sin(elapsed * 1.22) * 0.016,
-          2.1 + Math.sin(elapsed * 0.95) * 0.012,
-          2.12 + Math.cos(elapsed * 1.08) * 0.016
-        );
+      const targetPos = new THREE.Vector3(
+        shot.pos.x + Math.sin(elapsed * (isCloseShot ? 1.1 : 0.55)) * handAmount,
+        shot.pos.y + Math.cos(elapsed * (isCloseShot ? 0.95 : 0.5)) * handAmount,
+        shot.pos.z + Math.sin(elapsed * (isCloseShot ? 0.9 : 0.45)) * handAmount
+      );
+      const targetLook = new THREE.Vector3(
+        shot.look.x + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.01 : 0.004),
+        shot.look.y,
+        shot.look.z
+      );
 
-        const shotDuration = Math.max(0.01, shotDurationRef.current || 3.05);
-        const shotElapsed = Math.max(0, elapsed - shotStartedAtRef.current);
-        const shotProgress = Math.min(1, shotElapsed / shotDuration);
-        const easeProgress = shotProgress * shotProgress * (3 - 2 * shotProgress);
+      cameraTarget.lerpVectors(fromShotPosRef.current, targetPos, easeProgress);
+      lookAtTarget.lerpVectors(fromShotLookRef.current, targetLook, easeProgress);
 
-        cameraTarget.lerpVectors(widePose, closePose, easeProgress);
-        lookAtTarget.set(
-          focusPosition.x * 0.24,
-          1.1 + Math.sin(elapsed * 0.82) * 0.006,
-          focusPosition.z - 0.08
-        );
-      } else {
-        cameraTarget.set(
-          Math.sin(elapsed * defaultSwaySpeed) * defaultSwayX,
-          4.9 + Math.sin(elapsed * (defaultSwaySpeed * 0.56)) * (playing ? 0.16 : 0.07),
-          10.45 + Math.cos(elapsed * (defaultSwaySpeed * 0.44)) * defaultSwayZ
-        );
-        lookAtTarget.copy(baseLookAtPosition);
-      }
+      camera.position.copy(cameraTarget);
+      currentLookRef.current.copy(lookAtTarget);
+      camera.lookAt(currentLookRef.current);
 
-      camera.position.lerp(cameraTarget, playing ? 0.08 : 0.045);
-      const targetFov = playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current ? 30 : 38;
-      camera.fov += (targetFov - camera.fov) * 0.08;
+      const targetFov = fromShotFovRef.current + (shot.fov - fromShotFovRef.current) * easeProgress;
+      currentFovRef.current += (targetFov - currentFovRef.current) * 0.18;
+      camera.fov = currentFovRef.current;
       camera.updateProjectionMatrix();
-      camera.lookAt(lookAtTarget);
 
-      const focusDistance = Math.max(1.25, Math.min(14, camera.position.distanceTo(lookAtTarget)));
-      const cinematicIntensity = playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current ? 1 : 0;
+      const focusDistance = Math.max(1.05, Math.min(14, camera.position.distanceTo(currentLookRef.current)));
+      const cinematicIntensity = playing && Boolean(currentShotRef.current.instrument) ? 1 : 0;
       bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
       bokehPass.materialBokeh.uniforms.aperture.value = 0.000025 + cinematicIntensity * 0.000055;
       bokehPass.materialBokeh.uniforms.maxblur.value = 0.0013 + cinematicIntensity * 0.0036;
@@ -337,9 +365,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         const cameraDirection = new THREE.Vector3();
         camera.getWorldDirection(cameraDirection);
         const yawDeg = THREE.MathUtils.radToDeg(Math.atan2(cameraDirection.x, cameraDirection.z));
-        const zoomDistance = Math.max(4.8, Math.min(11.2, camera.position.distanceTo(lookAtTarget)));
-        const normalizedZoom = 1 - (zoomDistance - 4.8) / (11.2 - 4.8);
-        const focusInstrument = playing && isCinematicModeRef.current ? currentFocusedInstrumentRef.current : null;
+        const zoomDistance = Math.max(2.1, Math.min(11.5, camera.position.distanceTo(currentLookRef.current)));
+        const normalizedZoom = 1 - (zoomDistance - 2.1) / (11.5 - 2.1);
+        const focusInstrument = playing ? currentFocusedInstrumentRef.current : null;
         const depthBlur = focusInstrument ? 0.45 + normalizedZoom * 0.95 : 0;
 
         onCameraFrameRef.current?.({
@@ -355,7 +383,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       if (elapsed - lastShadowFrameSentAtRef.current > 0.08) {
         lastShadowFrameSentAtRef.current = elapsed;
         const shadowDrift = frontKeyLight.position.x / 2.9;
-        const isFocusMoment = Boolean(playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current);
+        const isFocusMoment = Boolean(playing && currentShotRef.current.instrument);
         onShadowFrameRef.current?.({
           offsetX: -11 - shadowDrift * 16,
           offsetY: isFocusMoment ? -24 : -16,
@@ -391,7 +419,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       });
 
       setFocusedInstrument(null);
-      setCinematicMode(false);
+      currentShotRef.current = generalShot;
 
       composer.dispose();
 
