@@ -103,15 +103,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x050505, 8, 22);
+    scene.fog = new THREE.Fog(0x121212, 10, 30);
 
     const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
     camera.position.copy(baseCameraPosition);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.78);
     scene.add(ambientLight);
 
-    const frontKeyLight = new THREE.SpotLight(0xfff3de, 1.65, 38, Math.PI * 0.22, 0.36, 1.2);
+    const frontKeyLight = new THREE.SpotLight(0xfff3de, 2.15, 40, Math.PI * 0.24, 0.32, 1.05);
     frontKeyLight.position.set(0, 7.1, 9.3);
     frontKeyLight.castShadow = true;
     frontKeyLight.shadow.mapSize.width = 1024;
@@ -121,11 +121,11 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     scene.add(frontKeyLight);
     scene.add(frontKeyLight.target);
 
-    const fillLight = new THREE.DirectionalLight(0x93b7ff, 0.35);
+    const fillLight = new THREE.DirectionalLight(0x93b7ff, 0.52);
     fillLight.position.set(4.5, 5.5, -3.5);
     scene.add(fillLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.34);
     backLight.position.set(0, 6.4, -8);
     scene.add(backLight);
 
@@ -186,8 +186,8 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const bokehPass = new BokehPass(scene, camera, {
       focus: 8,
-      aperture: 0.00006,
-      maxblur: 0.003,
+      aperture: 0.000035,
+      maxblur: 0.0018,
     });
     composer.addPass(bokehPass);
 
@@ -292,9 +292,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
           10.45 + Math.cos(elapsed * (defaultSwaySpeed * 0.44)) * defaultSwayZ
         );
         const closePose = new THREE.Vector3(
-          focusPosition.x * 0.58 + Math.sin(elapsed * 1.32) * 0.025,
-          2.52 + Math.sin(elapsed * 1.1) * 0.02,
-          3.46 + Math.cos(elapsed * 1.25) * 0.03
+          focusPosition.x * 0.62 + Math.sin(elapsed * 1.28) * 0.02,
+          2.36 + Math.sin(elapsed * 1.05) * 0.016,
+          2.82 + Math.cos(elapsed * 1.22) * 0.022
         );
 
         const shotDuration = Math.max(0.01, shotDurationRef.current || 3.05);
@@ -304,9 +304,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
         cameraTarget.lerpVectors(widePose, closePose, easeProgress);
         lookAtTarget.set(
-          focusPosition.x * 0.18,
-          1.16 + Math.sin(elapsed * 0.9) * 0.01,
-          focusPosition.z - 0.34
+          focusPosition.x * 0.22,
+          1.12 + Math.sin(elapsed * 0.88) * 0.008,
+          focusPosition.z - 0.18
         );
       } else {
         cameraTarget.set(
@@ -320,11 +320,11 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       camera.position.lerp(cameraTarget, playing ? 0.08 : 0.045);
       camera.lookAt(lookAtTarget);
 
-      const focusDistance = Math.max(1.6, Math.min(14, camera.position.distanceTo(lookAtTarget)));
+      const focusDistance = Math.max(1.25, Math.min(14, camera.position.distanceTo(lookAtTarget)));
       const cinematicIntensity = playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current ? 1 : 0;
       bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
-      bokehPass.materialBokeh.uniforms.aperture.value = 0.00005 + cinematicIntensity * 0.0002;
-      bokehPass.materialBokeh.uniforms.maxblur.value = 0.003 + cinematicIntensity * 0.014;
+      bokehPass.materialBokeh.uniforms.aperture.value = 0.00003 + cinematicIntensity * 0.00009;
+      bokehPass.materialBokeh.uniforms.maxblur.value = 0.0016 + cinematicIntensity * 0.0062;
 
       if (elapsed - lastCameraFrameSentAtRef.current > 0.06) {
         lastCameraFrameSentAtRef.current = elapsed;
@@ -334,7 +334,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         const zoomDistance = Math.max(4.8, Math.min(11.2, camera.position.distanceTo(lookAtTarget)));
         const normalizedZoom = 1 - (zoomDistance - 4.8) / (11.2 - 4.8);
         const focusInstrument = playing && isCinematicModeRef.current ? currentFocusedInstrumentRef.current : null;
-        const depthBlur = focusInstrument ? 1.8 + normalizedZoom * 2.2 : 0;
+        const depthBlur = focusInstrument ? 1 + normalizedZoom * 1.6 : 0;
 
         onCameraFrameRef.current?.({
           yawDeg,

@@ -1882,23 +1882,25 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
               const performerDepth = performerDepthByInstrument[performer.instrument as StagePerformerInstrument] ?? focusDepth;
               const distance = Math.abs(performerDepth - focusDepth);
               const normalizedDistance = Math.min(1, distance / 0.82);
+              const behindDistance = Math.max(0, focusDepth - performerDepth);
+              const behindFactor = Math.min(1, behindDistance / 0.86);
               const zoomWeight = 0.52 + stageZoomLevel * 0.88;
 
               const blurAmount = focusedPerformerInstrument === performer.instrument
                 ? Math.max(0, stageDepthBlur * 0.08)
-                : stageDepthBlur * normalizedDistance * 1.35 * zoomWeight;
+                : stageDepthBlur * behindFactor * 1.55 * zoomWeight;
 
               const dimFactor = focusedPerformerInstrument === performer.instrument
                 ? 1
-                : Math.max(0.58, 1 - normalizedDistance * 0.32 - stageZoomLevel * 0.14);
+                : Math.max(0.7, 1 - behindFactor * 0.24 - stageZoomLevel * 0.1);
 
               const saturationFactor = focusedPerformerInstrument === performer.instrument
                 ? 1
-                : Math.max(0.72, 1 - normalizedDistance * 0.22 - stageZoomLevel * 0.1);
+                : Math.max(0.78, 1 - behindFactor * 0.17 - stageZoomLevel * 0.08);
 
               const brightnessFactor = focusedPerformerInstrument === performer.instrument
                 ? 1
-                : Math.max(0.72, 1 - normalizedDistance * 0.25 - stageZoomLevel * 0.12);
+                : Math.max(0.76, 1 - behindFactor * 0.2 - stageZoomLevel * 0.1);
 
               return {
                 ['--performer-depth-blur' as string]: `${blurAmount.toFixed(2)}px`,
