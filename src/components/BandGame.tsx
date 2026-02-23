@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Howl, Howler } from 'howler';
 import { useGameStore, type Instrument } from '../state/gameStore';
 import BandConfigModal from './band/BandConfigModal';
@@ -10,6 +10,7 @@ import StageProgressList from './stage/StageProgressList';
 import StageCenterPanel from './stage/StageCenterPanel';
 import StageCurrentSongBar from './stage/StageCurrentSongBar';
 import StageVisualEffectsLayer from './stage/StageVisualEffectsLayer';
+import Stage3DScene from './stage/Stage3DScene';
 import useBandScreensState from '../hooks/useBandScreensState';
 import palcosData from '../locals/palcos.json';
 import musicsData from '../locals/musics.json';
@@ -25,6 +26,7 @@ const instrumentLabels: Record<Instrument, string> = {
 };
 
 const defaultStageBackground = new URL('../rsc/images/palcos/palco_garagem.png', import.meta.url).href;
+const defaultStageFloorTexture = new URL('../rsc/images/textura/3343397-madeira-textura-fundo-vetor.jpg', import.meta.url).href;
 const iconCache = new URL('../rsc/images/icons/cache_borda_brnca.png', import.meta.url).href;
 const iconCost = new URL('../rsc/images/icons/Custo_borda_branca.png', import.meta.url).href;
 const iconMoneyWhite = new URL('../rsc/images/icons/Dinheiro_Borda_branca.png', import.meta.url).href;
@@ -121,6 +123,14 @@ type MusicianData = {
 
 type HireFilter = 'all' | Instrument;
 type BandMenuView = 'band' | 'specials' | 'analysis';
+type StagePerformerInstrument = 'drums' | 'guitar' | 'bass' | 'keys';
+
+const performerDepthByInstrument: Record<StagePerformerInstrument, number> = {
+  drums: 0.18,
+  guitar: 0.56,
+  bass: 0.56,
+  keys: 1,
+};
 
 const stages = palcosData.palcos as StageData[];
 const stageImageAssetMap = import.meta.glob('../rsc/images/palcos/*.{png,jpg,jpeg,webp}', {
@@ -419,6 +429,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
+  const [focusedPerformerInstrument, setFocusedPerformerInstrument] = useState<StagePerformerInstrument | null>(null);
+  const [stageDepthBlur, setStageDepthBlur] = useState(0);
+  const [stageZoomLevel, setStageZoomLevel] = useState(0);
   const moneyRewardHowlRef = useRef<Howl | null>(null);
   const applauseHowlRef = useRef<Howl | null>(null);
   const purchaseHowlRef = useRef<Howl | null>(null);
@@ -1777,6 +1790,50 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     };
   }, []);
 
+  const handleStageShadowFrame = useCallback((shadow: {
+    offsetX: number;
+    offsetY: number;
+    blur: number;
+    opacity: number;
+    floorDepth: number;
+  }) => {
+    const stageElement = stageRef.current;
+    if (!stageElement) {
+      return;
+    }
+
+    stageElement.style.setProperty('--portrait-shadow-offset-x', `${shadow.offsetX.toFixed(2)}px`);
+    stageElement.style.setProperty('--portrait-shadow-offset-y', `${shadow.offsetY.toFixed(2)}px`);
+    stageElement.style.setProperty('--portrait-shadow-blur', `${shadow.blur.toFixed(2)}px`);
+    stageElement.style.setProperty('--portrait-shadow-opacity', shadow.opacity.toFixed(3));
+    stageElement.style.setProperty('--stage-floor-depth', shadow.floorDepth.toFixed(3));
+  }, []);
+
+  const handleStageCameraFrame = useCallback((frame: {
+    yawDeg: number;
+    shiftX: number;
+    shiftY: number;
+    zoom: number;
+    focusInstrument: StagePerformerInstrument | null;
+    depthBlur: number;
+  }) => {
+    const stageElement = stageRef.current;
+    if (!stageElement) {
+      return;
+    }
+
+    stageElement.style.setProperty('--stage-camera-yaw', `${frame.yawDeg.toFixed(2)}deg`);
+    stageElement.style.setProperty('--stage-camera-shift-x', `${frame.shiftX.toFixed(2)}px`);
+    stageElement.style.setProperty('--stage-camera-shift-y', `${frame.shiftY.toFixed(2)}px`);
+    stageElement.style.setProperty('--stage-camera-zoom', `${(1 + frame.zoom * 0.08).toFixed(4)}`);
+    stageElement.style.setProperty('--stage-depth-blur', `${frame.depthBlur.toFixed(2)}px`);
+    setFocusedPerformerInstrument(frame.focusInstrument);
+    setStageDepthBlur(frame.depthBlur);
+    setStageZoomLevel(frame.zoom);
+  }, []);
+
+  const activePerformerInstruments = stageBandPerformers.map((performer) => performer.instrument);
+
   return (
     <section
       className="game-screen stage-screen"
@@ -1799,12 +1856,57 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       ) : null}
       <div className={`stage-loop-fade${isLoopTransitioning ? ' show' : ''}`} aria-hidden="true" />
       <div className="stage-overlay" />
-      <div className="stage-scenery-floor" aria-hidden="true" />
-      <div className="stage-band-performers" aria-hidden="true">
+      <Stage3DScene
+        textureUrl={defaultStageFloorTexture}
+        isMusicPlaying={isMusicPlaying}
+        activeInstruments={activePerformerInstruments}
+        onCameraFrame={handleStageCameraFrame}
+        onShadowFrame={handleStageShadowFrame}
+      />
+      <div className={`stage-band-performers${focusedPerformerInstrument ? ' is-close-up' : ''}`} aria-hidden="true">
         {stageBandPerformers.map((performer) => (
           <div
             key={`${performer.instrument}-${performer.id}`}
-            className={`stage-performer stage-performer-${performer.instrument}`}
+            className={`stage-performer stage-performer-${performer.instrument}${focusedPerformerInstrument === performer.instrument ? ' is-focused' : ''}${focusedPerformerInstrument && focusedPerformerInstrument !== performer.instrument ? ' is-background' : ''}`}
+            style={(() => {
+              if (!focusedPerformerInstrument) {
+                return {
+                  ['--performer-depth-blur' as string]: '0px',
+                  ['--performer-depth-opacity' as string]: '1',
+                  ['--performer-depth-sat' as string]: '1',
+                  ['--performer-depth-bright' as string]: '1',
+                } as React.CSSProperties;
+              }
+
+              const focusDepth = performerDepthByInstrument[focusedPerformerInstrument];
+              const performerDepth = performerDepthByInstrument[performer.instrument as StagePerformerInstrument] ?? focusDepth;
+              const distance = Math.abs(performerDepth - focusDepth);
+              const normalizedDistance = Math.min(1, distance / 0.82);
+              const zoomWeight = 0.52 + stageZoomLevel * 0.88;
+
+              const blurAmount = focusedPerformerInstrument === performer.instrument
+                ? Math.max(0, stageDepthBlur * 0.08)
+                : stageDepthBlur * normalizedDistance * 1.35 * zoomWeight;
+
+              const dimFactor = focusedPerformerInstrument === performer.instrument
+                ? 1
+                : Math.max(0.58, 1 - normalizedDistance * 0.32 - stageZoomLevel * 0.14);
+
+              const saturationFactor = focusedPerformerInstrument === performer.instrument
+                ? 1
+                : Math.max(0.72, 1 - normalizedDistance * 0.22 - stageZoomLevel * 0.1);
+
+              const brightnessFactor = focusedPerformerInstrument === performer.instrument
+                ? 1
+                : Math.max(0.72, 1 - normalizedDistance * 0.25 - stageZoomLevel * 0.12);
+
+              return {
+                ['--performer-depth-blur' as string]: `${blurAmount.toFixed(2)}px`,
+                ['--performer-depth-opacity' as string]: dimFactor.toFixed(3),
+                ['--performer-depth-sat' as string]: saturationFactor.toFixed(3),
+                ['--performer-depth-bright' as string]: brightnessFactor.toFixed(3),
+              } as React.CSSProperties;
+            })()}
           >
             <img src={performer.portraitSrc} alt="" className="stage-performer-shadow" />
             <img src={performer.portraitSrc} alt="" className="stage-performer-portrait" />
