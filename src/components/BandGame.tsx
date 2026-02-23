@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Howl, Howler } from 'howler';
 import { useGameStore, type Instrument } from '../state/gameStore';
 import BandConfigModal from './band/BandConfigModal';
@@ -124,13 +124,6 @@ type MusicianData = {
 type HireFilter = 'all' | Instrument;
 type BandMenuView = 'band' | 'specials' | 'analysis';
 type StagePerformerInstrument = 'drums' | 'guitar' | 'bass' | 'keys';
-
-const performerDepthByInstrument: Record<StagePerformerInstrument, number> = {
-  drums: 0.18,
-  guitar: 0.56,
-  bass: 0.56,
-  keys: 1,
-};
 
 const stages = palcosData.palcos as StageData[];
 const stageImageAssetMap = import.meta.glob('../rsc/images/palcos/*.{png,jpg,jpeg,webp}', {
@@ -429,9 +422,6 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
-  const [focusedPerformerInstrument, setFocusedPerformerInstrument] = useState<StagePerformerInstrument | null>(null);
-  const [stageDepthBlur, setStageDepthBlur] = useState(0);
-  const [stageZoomLevel, setStageZoomLevel] = useState(0);
   const moneyRewardHowlRef = useRef<Howl | null>(null);
   const applauseHowlRef = useRef<Howl | null>(null);
   const purchaseHowlRef = useRef<Howl | null>(null);
@@ -854,6 +844,22 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       };
     })
     .filter((entry): entry is { instrument: Instrument; id: number; name: string; portraitSrc: string } => Boolean(entry));
+
+  const stage3DActiveMusicians = useMemo(
+    () => stageBandPerformers.map((performer) => ({
+      instrument: performer.instrument as StagePerformerInstrument,
+      id: performer.id,
+      portraitSrc: performer.portraitSrc,
+    })),
+    [stageBandPerformers]
+  );
+
+  const stage3DActiveMusiciansSignature = useMemo(
+    () => stage3DActiveMusicians
+      .map((performer) => `${performer.instrument}:${performer.id}:${performer.portraitSrc}`)
+      .join('|'),
+    [stage3DActiveMusicians]
+  );
 
   const bandInstrumentColumns: Array<{
     id: Instrument;
@@ -1790,50 +1796,6 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     };
   }, []);
 
-  const handleStageShadowFrame = useCallback((shadow: {
-    offsetX: number;
-    offsetY: number;
-    blur: number;
-    opacity: number;
-    floorDepth: number;
-  }) => {
-    const stageElement = stageRef.current;
-    if (!stageElement) {
-      return;
-    }
-
-    stageElement.style.setProperty('--portrait-shadow-offset-x', `${shadow.offsetX.toFixed(2)}px`);
-    stageElement.style.setProperty('--portrait-shadow-offset-y', `${shadow.offsetY.toFixed(2)}px`);
-    stageElement.style.setProperty('--portrait-shadow-blur', `${shadow.blur.toFixed(2)}px`);
-    stageElement.style.setProperty('--portrait-shadow-opacity', shadow.opacity.toFixed(3));
-    stageElement.style.setProperty('--stage-floor-depth', shadow.floorDepth.toFixed(3));
-  }, []);
-
-  const handleStageCameraFrame = useCallback((frame: {
-    yawDeg: number;
-    shiftX: number;
-    shiftY: number;
-    zoom: number;
-    focusInstrument: StagePerformerInstrument | null;
-    depthBlur: number;
-  }) => {
-    const stageElement = stageRef.current;
-    if (!stageElement) {
-      return;
-    }
-
-    stageElement.style.setProperty('--stage-camera-yaw', `${frame.yawDeg.toFixed(2)}deg`);
-    stageElement.style.setProperty('--stage-camera-shift-x', `${frame.shiftX.toFixed(2)}px`);
-    stageElement.style.setProperty('--stage-camera-shift-y', `${frame.shiftY.toFixed(2)}px`);
-    stageElement.style.setProperty('--stage-camera-zoom', `${(1 + frame.zoom * 0.34).toFixed(4)}`);
-    stageElement.style.setProperty('--stage-depth-blur', `${frame.depthBlur.toFixed(2)}px`);
-    setFocusedPerformerInstrument(frame.focusInstrument);
-    setStageDepthBlur(frame.depthBlur);
-    setStageZoomLevel(frame.zoom);
-  }, []);
-
-  const activePerformerInstruments = stageBandPerformers.map((performer) => performer.instrument);
-
   return (
     <section
       className="game-screen stage-screen"
@@ -1841,83 +1803,16 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       style={{ backgroundImage: `url(${stageBackground})` }}
       onPointerDownCapture={handlePointerPulse}
     >
-      {stageAnimatedBackground ? (
-        <video
-          key={stageAnimatedBackground}
-          ref={stageVideoRef}
-          className="stage-bg-video"
-          src={stageAnimatedBackground}
-          muted
-          autoPlay
-          playsInline
-          preload="auto"
-          onEnded={handleStageVideoEnded}
-        />
-      ) : null}
       <div className={`stage-loop-fade${isLoopTransitioning ? ' show' : ''}`} aria-hidden="true" />
       <div className="stage-overlay" />
       <Stage3DScene
         textureUrl={defaultStageFloorTexture}
+        backgroundImageUrl={stageBackground}
+        backgroundVideoUrl={stageAnimatedBackground}
         isMusicPlaying={isMusicPlaying}
-        activeInstruments={activePerformerInstruments}
-        onCameraFrame={handleStageCameraFrame}
-        onShadowFrame={handleStageShadowFrame}
+        activeMusicians={stage3DActiveMusicians}
+        activeMusiciansSignature={stage3DActiveMusiciansSignature}
       />
-      <div className={`stage-band-performers${focusedPerformerInstrument ? ' is-close-up' : ''}`} aria-hidden="true">
-        {stageBandPerformers.map((performer) => (
-          <div
-            key={`${performer.instrument}-${performer.id}`}
-            className={`stage-performer stage-performer-${performer.instrument}${focusedPerformerInstrument === performer.instrument ? ' is-focused' : ''}${focusedPerformerInstrument && focusedPerformerInstrument !== performer.instrument ? ' is-background' : ''}`}
-            style={(() => {
-              if (!focusedPerformerInstrument) {
-                return {
-                  ['--performer-depth-blur' as string]: '0px',
-                  ['--performer-depth-opacity' as string]: '1',
-                  ['--performer-depth-sat' as string]: '1',
-                  ['--performer-depth-bright' as string]: '1',
-                  ['--performer-camera-scale' as string]: '1',
-                } as React.CSSProperties;
-              }
-
-              const focusDepth = performerDepthByInstrument[focusedPerformerInstrument];
-              const performerDepth = performerDepthByInstrument[performer.instrument as StagePerformerInstrument] ?? focusDepth;
-              const behindDistance = Math.max(0, focusDepth - performerDepth);
-              const behindFactor = Math.min(1, behindDistance / 0.86);
-              const zoomWeight = 0.58 + stageZoomLevel * 0.7;
-              const depthScale = 0.92 + performerDepth * 0.26;
-              const focusBoost = focusedPerformerInstrument === performer.instrument ? 0.14 : 0;
-              const performerCameraScale = 1 + stageZoomLevel * (0.06 + depthScale * 0.24 + focusBoost);
-
-              const blurAmount = focusedPerformerInstrument === performer.instrument
-                ? Math.max(0, stageDepthBlur * 0.08)
-                : stageDepthBlur * behindFactor * 1.55 * zoomWeight;
-
-              const dimFactor = focusedPerformerInstrument === performer.instrument
-                ? 1
-                : Math.max(0.7, 1 - behindFactor * 0.24 - stageZoomLevel * 0.1);
-
-              const saturationFactor = focusedPerformerInstrument === performer.instrument
-                ? 1
-                : Math.max(0.78, 1 - behindFactor * 0.17 - stageZoomLevel * 0.08);
-
-              const brightnessFactor = focusedPerformerInstrument === performer.instrument
-                ? 1
-                : Math.max(0.76, 1 - behindFactor * 0.2 - stageZoomLevel * 0.1);
-
-              return {
-                ['--performer-depth-blur' as string]: `${blurAmount.toFixed(2)}px`,
-                ['--performer-depth-opacity' as string]: dimFactor.toFixed(3),
-                ['--performer-depth-sat' as string]: saturationFactor.toFixed(3),
-                ['--performer-depth-bright' as string]: brightnessFactor.toFixed(3),
-                ['--performer-camera-scale' as string]: performerCameraScale.toFixed(4),
-              } as React.CSSProperties;
-            })()}
-          >
-            <img src={performer.portraitSrc} alt="" className="stage-performer-shadow" />
-            <img src={performer.portraitSrc} alt="" className="stage-performer-portrait" />
-          </div>
-        ))}
-      </div>
       <StageVisualEffectsLayer
         tapEffects={tapEffects}
         rewardParticles={rewardParticles}

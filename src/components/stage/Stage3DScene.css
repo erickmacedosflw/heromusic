@@ -2,8 +2,8 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 42%;
-  bottom: var(--stage-menu-space);
+  top: 0;
+  bottom: 0;
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
@@ -19,12 +19,12 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.1) 100%);
+  background: transparent;
   pointer-events: none;
 }
 
 @media (max-width: 720px) {
   .stage-3d-layer {
-    top: 44%;
+    top: 0;
   }
 }

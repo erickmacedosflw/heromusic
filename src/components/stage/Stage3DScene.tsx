@@ -7,32 +7,47 @@ import './Stage3DScene.css';
 
 type StagePerformerInstrument = 'drums' | 'guitar' | 'bass' | 'keys';
 
-type Stage3DSceneProps = {
-  textureUrl: string;
-  isMusicPlaying: boolean;
-  activeInstruments: StagePerformerInstrument[];
-  onCameraFrame?: (frame: {
-    yawDeg: number;
-    shiftX: number;
-    shiftY: number;
-    zoom: number;
-    focusInstrument: StagePerformerInstrument | null;
-    depthBlur: number;
-  }) => void;
-  onShadowFrame?: (shadow: { offsetX: number; offsetY: number; blur: number; opacity: number; floorDepth: number }) => void;
+type StageMusicianSprite = {
+  instrument: StagePerformerInstrument;
+  id: number;
+  portraitSrc: string;
 };
 
-const baseCameraPosition = new THREE.Vector3(0, 4.85, 10.9);
-const baseLookAtPosition = new THREE.Vector3(0, 0.72, 0.45);
+type Stage3DSceneProps = {
+  textureUrl: string;
+  backgroundImageUrl?: string;
+  backgroundVideoUrl?: string | null;
+  isMusicPlaying: boolean;
+  activeMusicians: StageMusicianSprite[];
+  activeMusiciansSignature?: string;
+};
+
+const baseCameraPosition = new THREE.Vector3(0, 5.25, 14.45);
+const baseLookAtPosition = new THREE.Vector3(0, 0.76, 0.42);
 
 const performerPositions: Record<StagePerformerInstrument, THREE.Vector3> = {
-  drums: new THREE.Vector3(0, 0.9, 0.4),
-  guitar: new THREE.Vector3(-2.5, 1, 1.5),
-  bass: new THREE.Vector3(2.5, 1, 1.5),
-  keys: new THREE.Vector3(0, 1, 2.5),
+  drums: new THREE.Vector3(0.95, 0.9, -0.3),
+  guitar: new THREE.Vector3(-2.7, 1, 1.06),
+  bass: new THREE.Vector3(2.7, 1, 1.06),
+  keys: new THREE.Vector3(-0.96, 1, 2.6),
+};
+
+const performerSpriteScale: Record<StagePerformerInstrument, [number, number]> = {
+  drums: [2.1, 3.1],
+  guitar: [2.05, 3],
+  bass: [2.05, 3],
+  keys: [2.2, 3.15],
+};
+
+const performerShadowScale: Record<StagePerformerInstrument, [number, number]> = {
+  drums: [1.9, 0.66],
+  guitar: [1.72, 0.58],
+  bass: [1.72, 0.58],
+  keys: [1.98, 0.7],
 };
 
 type CameraShot = {
+  type: 'general' | 'focus' | 'sweep';
   instrument: StagePerformerInstrument | null;
   pos: THREE.Vector3;
   look: THREE.Vector3;
@@ -41,72 +56,104 @@ type CameraShot = {
 };
 
 const generalShot: CameraShot = {
+  type: 'general',
   instrument: null,
-  pos: new THREE.Vector3(0, 4.15, 8.35),
-  look: new THREE.Vector3(0, 1.05, -0.1),
-  fov: 58,
+  pos: new THREE.Vector3(0, 4.95, 12.95),
+  look: new THREE.Vector3(0, 0.9, -0.08),
+  fov: 62,
   duration: 1.6,
+};
+
+const sweepShotLeft: CameraShot = {
+  type: 'sweep',
+  instrument: null,
+  pos: new THREE.Vector3(-3.3, 3.4, 2.15),
+  look: new THREE.Vector3(-0.15, 1.16, 0.2),
+  fov: 52,
+  duration: 8,
+};
+
+const sweepShotRight: CameraShot = {
+  type: 'sweep',
+  instrument: null,
+  pos: new THREE.Vector3(3.3, 3.4, 2.15),
+  look: new THREE.Vector3(0.15, 1.16, 0.2),
+  fov: 52,
+  duration: 8,
 };
 
 const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
   guitar: {
+    type: 'focus',
     instrument: 'guitar',
-    pos: new THREE.Vector3(-2.2, 2.32, 2.55),
-    look: new THREE.Vector3(-2.08, 1.12, -0.78),
-    fov: 24,
-    duration: 2.85,
+    pos: new THREE.Vector3(-2.5, 2.7, 3.95),
+    look: new THREE.Vector3(-2.6, 1.84, -0.2),
+    fov: 43,
+    duration: 5,
   },
   bass: {
+    type: 'focus',
     instrument: 'bass',
-    pos: new THREE.Vector3(2.2, 2.32, 2.55),
-    look: new THREE.Vector3(2.08, 1.12, -0.78),
-    fov: 24,
-    duration: 2.85,
+    pos: new THREE.Vector3(2.5, 2.7, 3.95),
+    look: new THREE.Vector3(2.6, 1.84, -0.2),
+    fov: 43,
+    duration: 5,
   },
   drums: {
+    type: 'focus',
     instrument: 'drums',
-    pos: new THREE.Vector3(0, 3.05, 2.18),
-    look: new THREE.Vector3(0, 1.2, -1.7),
-    fov: 22,
-    duration: 2.95,
+    pos: new THREE.Vector3(0.9, 3.45, 3.08),
+    look: new THREE.Vector3(0.95, 1.96, -0.9),
+    fov: 42,
+    duration: 5,
   },
   keys: {
+    type: 'focus',
     instrument: 'keys',
-    pos: new THREE.Vector3(0, 2.06, 2.1),
-    look: new THREE.Vector3(0, 1.15, 0.88),
-    fov: 23,
-    duration: 2.8,
+    pos: new THREE.Vector3(-0.82, 2.45, 3.46),
+    look: new THREE.Vector3(-0.96, 1.88, 1.74),
+    fov: 42,
+    duration: 5,
   },
 };
 
-const buildShotQueue = (activeInstruments: StagePerformerInstrument[]) => {
+const buildShotQueue = (activeInstruments: StagePerformerInstrument[], cycle: number) => {
   const sequenceOrder: StagePerformerInstrument[] = ['guitar', 'drums', 'bass', 'keys'];
-  const queue: CameraShot[] = [];
+  const availableOrder = sequenceOrder.filter((instrument) => activeInstruments.includes(instrument));
+  if (!availableOrder.length) {
+    return [generalShot];
+  }
 
-  sequenceOrder.forEach((instrument) => {
-    if (!activeInstruments.includes(instrument)) {
-      return;
-    }
+  const rotateBy = cycle % availableOrder.length;
+  const rotatedOrder = [...availableOrder.slice(rotateBy), ...availableOrder.slice(0, rotateBy)];
+  const focusOrder = cycle % 2 === 0 ? rotatedOrder : [...rotatedOrder].reverse();
+  const sweepStart = cycle % 2 === 0 ? sweepShotLeft : sweepShotRight;
+  const sweepEnd = cycle % 2 === 0 ? sweepShotRight : sweepShotLeft;
 
+  const queue: CameraShot[] = [sweepStart];
+  focusOrder.forEach((instrument, index) => {
     queue.push(focusShotByInstrument[instrument]);
-    queue.push(generalShot);
+    if ((index + 1) % 2 === 0) {
+      queue.push(generalShot);
+    }
   });
+  queue.push(sweepEnd);
+  queue.push(generalShot);
 
-  return queue.length ? queue : [generalShot];
+  return queue;
 };
 
 const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   textureUrl,
+  backgroundImageUrl,
+  backgroundVideoUrl,
   isMusicPlaying,
-  activeInstruments,
-  onCameraFrame,
-  onShadowFrame,
+  activeMusicians,
+  activeMusiciansSignature,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isMusicPlayingRef = useRef(isMusicPlaying);
-  const activeInstrumentsRef = useRef(activeInstruments);
-  const onCameraFrameRef = useRef(onCameraFrame);
-  const onShadowFrameRef = useRef(onShadowFrame);
+  const activeMusiciansRef = useRef(activeMusicians);
 
   const currentFocusedInstrumentRef = useRef<StagePerformerInstrument | null>(null);
   const shotQueueRef = useRef<CameraShot[]>([]);
@@ -114,30 +161,28 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   const currentShotRef = useRef<CameraShot>(generalShot);
   const fromShotPosRef = useRef(baseCameraPosition.clone());
   const fromShotLookRef = useRef(baseLookAtPosition.clone());
-  const fromShotFovRef = useRef(58);
+  const fromShotFovRef = useRef(60);
   const currentLookRef = useRef(baseLookAtPosition.clone());
-  const currentFovRef = useRef(58);
+  const currentFovRef = useRef(60);
   const shotEndsAtRef = useRef(0);
   const shotStartedAtRef = useRef(0);
   const shotMoveDurationRef = useRef(1.15);
+  const shotQueueCycleRef = useRef(0);
   const lastShadowFrameSentAtRef = useRef(0);
-  const lastCameraFrameSentAtRef = useRef(0);
+  const wasMusicPlayingRef = useRef(false);
+  const randomMotionRefreshAtRef = useRef(0);
+  const randomPosOffsetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const randomPosOffsetTargetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const randomLookOffsetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const randomLookOffsetTargetRef = useRef(new THREE.Vector3(0, 0, 0));
 
   useEffect(() => {
     isMusicPlayingRef.current = isMusicPlaying;
   }, [isMusicPlaying]);
 
   useEffect(() => {
-    activeInstrumentsRef.current = activeInstruments;
-  }, [activeInstruments]);
-
-  useEffect(() => {
-    onCameraFrameRef.current = onCameraFrame;
-  }, [onCameraFrame]);
-
-  useEffect(() => {
-    onShadowFrameRef.current = onShadowFrame;
-  }, [onShadowFrame]);
+    activeMusiciansRef.current = activeMusicians;
+  }, [activeMusicians]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -148,25 +193,132 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
+      premultipliedAlpha: false,
       powerPreference: 'high-performance',
     });
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
     renderer.setClearAlpha(0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.domElement.style.background = 'transparent';
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x2a2a2a, 12, 40);
+    scene.background = null;
+    scene.fog = null;
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
     camera.position.copy(baseCameraPosition);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.78);
+    const textureLoader = new THREE.TextureLoader();
+    let sceneBackgroundTexture: THREE.Texture | null = null;
+    let sceneBackgroundVideoElement: HTMLVideoElement | null = null;
+    let hasActiveVideoBackground = false;
+    const backgroundGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+    const backgroundMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      toneMapped: false,
+    });
+    const backgroundPlane = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+    backgroundPlane.position.set(0, 13.7, -44);
+    backgroundPlane.renderOrder = -20;
+    scene.add(backgroundPlane);
+
+    const getBackgroundAspect = () => {
+      const bgMap = backgroundMaterial.map;
+      if (!bgMap) {
+        return 16 / 9;
+      }
+
+      const source = bgMap.image as {
+        videoWidth?: number;
+        videoHeight?: number;
+        width?: number;
+        height?: number;
+      } | null;
+
+      const width = source?.videoWidth ?? source?.width ?? 0;
+      const height = source?.videoHeight ?? source?.height ?? 0;
+      if (!width || !height) {
+        return 16 / 9;
+      }
+
+      return width / height;
+    };
+
+    const updateBackgroundPlaneScale = () => {
+      const distance = Math.abs(camera.position.z - backgroundPlane.position.z);
+      const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
+      const frustumWidth = frustumHeight * camera.aspect;
+
+      const textureAspect = getBackgroundAspect();
+      let planeWidth = frustumWidth * 1.04;
+      let planeHeight = planeWidth / textureAspect;
+      if (planeHeight < frustumHeight * 1.04) {
+        planeHeight = frustumHeight * 1.04;
+        planeWidth = planeHeight * textureAspect;
+      }
+
+      backgroundPlane.scale.set(planeWidth, planeHeight, 1);
+    };
+
+    const applySceneBackground = () => {
+      if (backgroundImageUrl) {
+        const bgTexture = textureLoader.load(backgroundImageUrl);
+        bgTexture.colorSpace = THREE.SRGBColorSpace;
+        sceneBackgroundTexture = bgTexture;
+        backgroundMaterial.map = bgTexture;
+        backgroundMaterial.needsUpdate = true;
+      }
+
+      if (backgroundVideoUrl) {
+        const video = document.createElement('video');
+        video.src = backgroundVideoUrl;
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+
+        const videoTexture = new THREE.VideoTexture(video);
+        videoTexture.colorSpace = THREE.SRGBColorSpace;
+        videoTexture.minFilter = THREE.LinearFilter;
+        videoTexture.magFilter = THREE.LinearFilter;
+        videoTexture.generateMipmaps = false;
+
+        sceneBackgroundVideoElement = video;
+        const activateVideoTexture = () => {
+          if (!sceneBackgroundVideoElement || sceneBackgroundVideoElement.readyState < 2) {
+            return;
+          }
+          if (sceneBackgroundTexture && sceneBackgroundTexture !== videoTexture) {
+            sceneBackgroundTexture.dispose();
+          }
+          hasActiveVideoBackground = true;
+          sceneBackgroundTexture = videoTexture;
+          backgroundMaterial.map = videoTexture;
+          backgroundMaterial.needsUpdate = true;
+          updateBackgroundPlaneScale();
+        };
+
+        video.addEventListener('loadeddata', activateVideoTexture, { once: true });
+        video.addEventListener('canplay', activateVideoTexture, { once: true });
+
+        void video.play().catch(() => undefined);
+      }
+    };
+
+    applySceneBackground();
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.02);
     scene.add(ambientLight);
 
-    const frontKeyLight = new THREE.SpotLight(0xfff3de, 2.15, 40, Math.PI * 0.24, 0.32, 1.05);
+    const frontKeyLight = new THREE.SpotLight(0xfff3de, 2.42, 40, Math.PI * 0.24, 0.32, 1.05);
     frontKeyLight.position.set(0, 7.1, 9.3);
     frontKeyLight.castShadow = true;
     frontKeyLight.shadow.mapSize.width = 1024;
@@ -176,15 +328,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     scene.add(frontKeyLight);
     scene.add(frontKeyLight.target);
 
-    const fillLight = new THREE.DirectionalLight(0x93b7ff, 0.52);
+    const fillLight = new THREE.DirectionalLight(0x93b7ff, 0.72);
     fillLight.position.set(4.5, 5.5, -3.5);
     scene.add(fillLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.34);
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
     backLight.position.set(0, 6.4, -8);
     scene.add(backLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xd7e7ff, 0x6a4f3d, 0.45);
+    const hemiLight = new THREE.HemisphereLight(0xe6efff, 0x7a5f4a, 0.62);
     scene.add(hemiLight);
 
     const floorTexture = new THREE.TextureLoader().load(textureUrl);
@@ -218,6 +370,82 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     frontEdge.receiveShadow = true;
     scene.add(frontEdge);
 
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = 256;
+    shadowCanvas.height = 256;
+    const shadowCtx = shadowCanvas.getContext('2d');
+    if (shadowCtx) {
+      const gradient = shadowCtx.createRadialGradient(128, 128, 8, 128, 128, 118);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.72)');
+      gradient.addColorStop(0.62, 'rgba(0, 0, 0, 0.34)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      shadowCtx.fillStyle = gradient;
+      shadowCtx.fillRect(0, 0, 256, 256);
+    }
+
+    const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
+    shadowTexture.colorSpace = THREE.SRGBColorSpace;
+    const shadowGeometry = new THREE.PlaneGeometry(1, 1);
+
+    const spriteTextureLoader = new THREE.TextureLoader();
+    const musicianSprites: Array<{
+      sprite: THREE.Sprite;
+      shadow: THREE.Mesh;
+      texture: THREE.Texture;
+      spriteMaterial: THREE.SpriteMaterial;
+      shadowMaterial: THREE.MeshBasicMaterial;
+    }> = [];
+
+    activeMusiciansRef.current.forEach((musician) => {
+      const basePosition = performerPositions[musician.instrument];
+      if (!basePosition) {
+        return;
+      }
+
+      const spriteTexture = spriteTextureLoader.load(musician.portraitSrc);
+      spriteTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const spriteMaterial = new THREE.SpriteMaterial({
+        map: spriteTexture,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+      });
+
+      const sprite = new THREE.Sprite(spriteMaterial);
+      const [scaleX, scaleY] = performerSpriteScale[musician.instrument];
+      sprite.scale.set(scaleX, scaleY, 1);
+      sprite.center.set(0.5, 0.02);
+      sprite.position.set(basePosition.x, 0.11, basePosition.z);
+      sprite.renderOrder = 5;
+      scene.add(sprite);
+
+      const shadowMaterial = new THREE.MeshBasicMaterial({
+        map: shadowTexture,
+        transparent: true,
+        opacity: 0.84,
+        depthWrite: false,
+        depthTest: false,
+      });
+      const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+      const [shadowWidth, shadowHeight] = performerShadowScale[musician.instrument];
+      shadow.scale.set(shadowWidth * 1.62, shadowHeight * 1.92, 1);
+      shadow.rotation.x = floor.rotation.x;
+      shadow.position.set(basePosition.x, 0.035, basePosition.z - 0.2);
+      shadow.userData.baseX = shadow.position.x;
+      shadow.userData.baseZ = shadow.position.z;
+      shadow.renderOrder = 3;
+      scene.add(shadow);
+
+      musicianSprites.push({
+        sprite,
+        shadow,
+        texture: spriteTexture,
+        spriteMaterial,
+        shadowMaterial,
+      });
+    });
+
     const standInGeometry = new THREE.CapsuleGeometry(0.35, 1.2, 2, 8);
     const standInMaterial = new THREE.MeshStandardMaterial({
       color: 0x1e1e1e,
@@ -238,14 +466,21 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       scene.add(standIn);
     });
 
-    const composer = new EffectComposer(renderer);
-    const renderPass = new RenderPass(scene, camera);
-    composer.addPass(renderPass);
+    const composerRenderTarget = new THREE.WebGLRenderTarget(1, 1, {
+      format: THREE.RGBAFormat,
+      depthBuffer: true,
+      stencilBuffer: false,
+    });
 
+    const composer = new EffectComposer(renderer, composerRenderTarget);
+    const renderPass = new RenderPass(scene, camera);
+    renderPass.clear = true;
+    renderPass.clearAlpha = 0;
+    composer.addPass(renderPass);
     const bokehPass = new BokehPass(scene, camera, {
       focus: 8,
-      aperture: 0.00003,
-      maxblur: 0.0015,
+      aperture: 0.000004,
+      maxblur: 0.00035,
     });
     composer.addPass(bokehPass);
 
@@ -259,6 +494,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       composer.setSize(clientWidth, clientHeight);
       camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
+      updateBackgroundPlaneScale();
     };
 
     resize();
@@ -272,6 +508,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const setFocusedInstrument = (instrument: StagePerformerInstrument | null) => {
       currentFocusedInstrumentRef.current = instrument;
+    };
+
+    const rebuildShotQueue = () => {
+      shotQueueRef.current = buildShotQueue(
+        activeMusiciansRef.current.map((item) => item.instrument),
+        shotQueueCycleRef.current
+      );
+      shotQueueCycleRef.current += 1;
+      shotIndexRef.current = 0;
     };
 
     const applyNextShot = (elapsed: number, cameraObject: THREE.PerspectiveCamera) => {
@@ -293,7 +538,13 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       setFocusedInstrument(nextShot.instrument);
 
       shotStartedAtRef.current = elapsed;
-      shotMoveDurationRef.current = nextShot.instrument ? 1.22 : 1.05;
+      if (nextShot.type === 'sweep') {
+        shotMoveDurationRef.current = 7.6;
+      } else if (nextShot.type === 'focus') {
+        shotMoveDurationRef.current = 3;
+      } else {
+        shotMoveDurationRef.current = 1.35;
+      }
       shotEndsAtRef.current = elapsed + nextShot.duration;
     };
 
@@ -308,18 +559,21 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       frontKeyLight.target.updateMatrixWorld();
 
       if (!playing) {
-        shotQueueRef.current = [generalShot];
-        shotIndexRef.current = 0;
-        currentShotRef.current = generalShot;
-        setFocusedInstrument(null);
-        fromShotPosRef.current.copy(camera.position);
-        fromShotLookRef.current.copy(currentLookRef.current);
-        fromShotFovRef.current = camera.fov;
-        shotStartedAtRef.current = elapsed;
-        shotMoveDurationRef.current = 0.9;
-        shotEndsAtRef.current = elapsed + 0.9;
+        if (wasMusicPlayingRef.current || currentShotRef.current.instrument !== null) {
+          fromShotPosRef.current.copy(camera.position);
+          fromShotLookRef.current.copy(currentLookRef.current);
+          fromShotFovRef.current = currentFovRef.current;
+          currentShotRef.current = generalShot;
+          setFocusedInstrument(null);
+          shotStartedAtRef.current = elapsed;
+          shotMoveDurationRef.current = 1.2;
+          shotEndsAtRef.current = elapsed + 1.2;
+          rebuildShotQueue();
+        }
       } else if (!shotEndsAtRef.current || elapsed >= shotEndsAtRef.current) {
-        shotQueueRef.current = buildShotQueue(activeInstrumentsRef.current);
+        if (!shotQueueRef.current.length || shotIndexRef.current === 0) {
+          rebuildShotQueue();
+        }
         applyNextShot(elapsed, camera);
       }
 
@@ -329,76 +583,137 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const moveProgress = Math.min(1, shotElapsed / moveDuration);
       const easeProgress = moveProgress * moveProgress * (3 - 2 * moveProgress);
       const isCloseShot = Boolean(shot.instrument);
-      const handAmount = isCloseShot ? 0.015 : 0.006;
+
+      if (playing && elapsed >= randomMotionRefreshAtRef.current) {
+        const nextWindow = isCloseShot
+          ? 1.6 + Math.random() * 1.8
+          : 2.4 + Math.random() * 2.6;
+        randomMotionRefreshAtRef.current = elapsed + nextWindow;
+
+        randomPosOffsetTargetRef.current.set(
+          (Math.random() - 0.5) * (isCloseShot ? 0.2 : 0.4),
+          (Math.random() - 0.5) * (isCloseShot ? 0.08 : 0.16),
+          (Math.random() - 0.5) * (isCloseShot ? 0.18 : 0.34)
+        );
+
+        randomLookOffsetTargetRef.current.set(
+          (Math.random() - 0.5) * (isCloseShot ? 0.12 : 0.24),
+          (Math.random() - 0.5) * (isCloseShot ? 0.05 : 0.1),
+          (Math.random() - 0.5) * (isCloseShot ? 0.1 : 0.16)
+        );
+
+      }
+
+      if (!playing || !isCloseShot) {
+        randomPosOffsetTargetRef.current.set(0, 0, 0);
+        randomLookOffsetTargetRef.current.set(0, 0, 0);
+      }
+
+      randomPosOffsetRef.current.lerp(randomPosOffsetTargetRef.current, isCloseShot ? 0.055 : 0.04);
+      randomLookOffsetRef.current.lerp(randomLookOffsetTargetRef.current, isCloseShot ? 0.065 : 0.05);
+
+      const handAmount = isCloseShot ? 0.024 : 0.015;
 
       const targetPos = new THREE.Vector3(
-        shot.pos.x + Math.sin(elapsed * (isCloseShot ? 1.1 : 0.55)) * handAmount,
-        shot.pos.y + Math.cos(elapsed * (isCloseShot ? 0.95 : 0.5)) * handAmount,
-        shot.pos.z + Math.sin(elapsed * (isCloseShot ? 0.9 : 0.45)) * handAmount
+        shot.pos.x,
+        shot.pos.y,
+        shot.pos.z
       );
+      const focusPosition = shot.instrument
+        ? performerPositions[shot.instrument]
+        : null;
+
+      const focusAnchor = focusPosition
+        ? new THREE.Vector3(
+          focusPosition.x,
+          focusPosition.y + 1.1,
+          focusPosition.z + 0.04
+        )
+        : null;
+
+      if (isCloseShot && focusAnchor) {
+        const shotDistanceToPortrait = Math.max(4.65, Math.min(5.9, shot.pos.distanceTo(focusAnchor)));
+        const closeDistance = shotDistanceToPortrait;
+        const shotDirection = new THREE.Vector3().subVectors(shot.pos, focusAnchor);
+        if (shotDirection.lengthSq() < 0.0001) {
+          shotDirection.set(0, 0.24, 1);
+        }
+        shotDirection.normalize();
+        targetPos.copy(focusAnchor).addScaledVector(shotDirection, closeDistance);
+        targetPos.y += 0.22;
+      }
+
+      targetPos.x += Math.sin(elapsed * (isCloseShot ? 0.92 : 0.52)) * handAmount
+        + Math.sin(elapsed * 0.16) * (isCloseShot ? 0.12 : 0.16)
+        + (isCloseShot ? Math.sin(elapsed * 1.48) * 0.022 : 0)
+        + randomPosOffsetRef.current.x;
+      targetPos.y += Math.cos(elapsed * (isCloseShot ? 0.72 : 0.46)) * handAmount
+        + Math.cos(elapsed * 0.14) * (isCloseShot ? 0.06 : 0.07)
+        + randomPosOffsetRef.current.y;
+      targetPos.z += Math.sin(elapsed * (isCloseShot ? 0.62 : 0.4)) * handAmount
+        + Math.sin(elapsed * 0.11) * (isCloseShot ? 0.09 : 0.14)
+        + (isCloseShot ? Math.cos(elapsed * 1.22) * 0.018 : 0)
+        + randomPosOffsetRef.current.z;
+
+      const sideSway = Math.sin(elapsed * 0.42) * (isCloseShot ? 0.035 : 0.11);
+      const frontBackSway = Math.cos(elapsed * 0.31) * (isCloseShot ? 0.018 : 0.05);
+      targetPos.x += sideSway;
+      targetPos.z += frontBackSway;
+
       const targetLook = new THREE.Vector3(
-        shot.look.x + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.01 : 0.004),
-        shot.look.y,
-        shot.look.z
+        (focusAnchor ? focusAnchor.x : shot.look.x)
+          + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.009 : 0.005)
+          + Math.sin(elapsed * 0.42) * (isCloseShot ? 0.01 : 0.03)
+          + randomLookOffsetRef.current.x,
+        (focusAnchor ? focusAnchor.y + 0.14 : shot.look.y)
+          + Math.cos(elapsed * 0.41) * (isCloseShot ? 0.007 : 0.003)
+          + randomLookOffsetRef.current.y,
+        (focusAnchor ? focusAnchor.z : shot.look.z) + randomLookOffsetRef.current.z
       );
+
+      targetLook.y += isCloseShot ? 0.16 : 0.28;
 
       cameraTarget.lerpVectors(fromShotPosRef.current, targetPos, easeProgress);
       lookAtTarget.lerpVectors(fromShotLookRef.current, targetLook, easeProgress);
 
       camera.position.copy(cameraTarget);
       currentLookRef.current.copy(lookAtTarget);
+      camera.up.set(0, 1, 0);
       camera.lookAt(currentLookRef.current);
 
       const targetFov = fromShotFovRef.current + (shot.fov - fromShotFovRef.current) * easeProgress;
-      currentFovRef.current += (targetFov - currentFovRef.current) * 0.18;
+      currentFovRef.current += (targetFov - currentFovRef.current) * 0.12;
       camera.fov = currentFovRef.current;
       camera.updateProjectionMatrix();
 
-      const focusDistance = Math.max(1.05, Math.min(14, camera.position.distanceTo(currentLookRef.current)));
-      const cinematicIntensity = playing && Boolean(currentShotRef.current.instrument) ? 1 : 0;
+      const focusDistance = Math.max(1.2, Math.min(16, camera.position.distanceTo(currentLookRef.current)));
+      const closeStrengthRaw = isCloseShot ? 1 - (focusDistance - 2.3) / 5.8 : 0;
+      const closeStrength = Math.max(0, Math.min(1, closeStrengthRaw));
       bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
-      bokehPass.materialBokeh.uniforms.aperture.value = 0.000025 + cinematicIntensity * 0.000055;
-      bokehPass.materialBokeh.uniforms.maxblur.value = 0.0013 + cinematicIntensity * 0.0036;
+      const smoothClose = closeStrength * closeStrength * (3 - 2 * closeStrength);
+      bokehPass.materialBokeh.uniforms.aperture.value = 0.0000013 + smoothClose * 0.0000022;
+      bokehPass.materialBokeh.uniforms.maxblur.value = 0.00008 + smoothClose * 0.00018;
 
-      if (elapsed - lastCameraFrameSentAtRef.current > 0.06) {
-        lastCameraFrameSentAtRef.current = elapsed;
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        const yawDeg = THREE.MathUtils.radToDeg(Math.atan2(cameraDirection.x, cameraDirection.z));
-        const zoomDistance = Math.max(2.1, Math.min(11.5, camera.position.distanceTo(currentLookRef.current)));
-        const normalizedZoom = 1 - (zoomDistance - 2.1) / (11.5 - 2.1);
-        const focusInstrument = playing ? currentFocusedInstrumentRef.current : null;
-        const depthBlur = focusInstrument ? 0.45 + normalizedZoom * 0.95 : 0;
-
-        onCameraFrameRef.current?.({
-          yawDeg,
-          shiftX: (camera.position.x / 3.2) * 30,
-          shiftY: (5.2 - camera.position.y) * 18,
-          zoom: Math.max(0, Math.min(1, normalizedZoom)),
-          focusInstrument,
-          depthBlur,
-        });
-      }
-
-      if (elapsed - lastShadowFrameSentAtRef.current > 0.08) {
+      if (elapsed - lastShadowFrameSentAtRef.current > 0.06) {
         lastShadowFrameSentAtRef.current = elapsed;
-        const shadowDrift = frontKeyLight.position.x / 2.9;
-        const isFocusMoment = Boolean(playing && currentShotRef.current.instrument);
-        onShadowFrameRef.current?.({
-          offsetX: -11 - shadowDrift * 16,
-          offsetY: isFocusMoment ? -24 : -16,
-          blur: isFocusMoment ? 4.2 : 3.2,
-          opacity: isFocusMoment ? 0.42 : 0.34,
-          floorDepth: isFocusMoment ? 1 : 0.75,
+        const shadowDrift = frontKeyLight.position.x / 3.4;
+        musicianSprites.forEach(({ shadow, shadowMaterial }) => {
+          const baseShadowX = (shadow.userData.baseX as number) ?? shadow.position.x;
+          const baseShadowZ = (shadow.userData.baseZ as number) ?? shadow.position.z;
+          shadow.position.x = baseShadowX;
+          shadow.position.z = baseShadowZ;
+          shadowMaterial.opacity = 0.76 + Math.abs(shadowDrift) * 0.12;
         });
       }
 
-      if (cinematicIntensity > 0.01) {
+      const allowBokeh = isCloseShot && closeStrength > 0.02 && !hasActiveVideoBackground;
+      if (allowBokeh) {
         composer.render();
       } else {
         renderer.render(scene, camera);
       }
       animationFrameId = window.requestAnimationFrame(animate);
+      wasMusicPlayingRef.current = playing;
     };
 
     animationFrameId = window.requestAnimationFrame(animate);
@@ -410,18 +725,39 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       floorGeometry.dispose();
       floorMaterial.dispose();
       floorTexture.dispose();
+      backgroundGeometry.dispose();
+      backgroundMaterial.dispose();
+      scene.remove(backgroundPlane);
       standInGeometry.dispose();
       standInMaterial.dispose();
       frontEdgeGeometry.dispose();
       frontEdgeMaterial.dispose();
+      shadowGeometry.dispose();
+      shadowTexture.dispose();
       performerStandIns.forEach((standIn) => {
         scene.remove(standIn);
+      });
+      musicianSprites.forEach(({ sprite, shadow, texture, spriteMaterial, shadowMaterial }) => {
+        scene.remove(sprite);
+        scene.remove(shadow);
+        texture.dispose();
+        spriteMaterial.dispose();
+        shadowMaterial.dispose();
       });
 
       setFocusedInstrument(null);
       currentShotRef.current = generalShot;
 
       composer.dispose();
+      composerRenderTarget.dispose();
+      if (sceneBackgroundVideoElement) {
+        sceneBackgroundVideoElement.pause();
+        sceneBackgroundVideoElement.src = '';
+        sceneBackgroundVideoElement.load();
+      }
+      if (sceneBackgroundTexture) {
+        sceneBackgroundTexture.dispose();
+      }
 
       renderer.dispose();
       renderer.forceContextLoss();
@@ -429,7 +765,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [textureUrl]);
+  }, [textureUrl, backgroundImageUrl, backgroundVideoUrl, activeMusiciansSignature]);
 
   return <div className="stage-3d-layer" ref={containerRef} aria-hidden="true" />;
 };

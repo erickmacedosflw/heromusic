@@ -846,9 +846,10 @@ input {
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  background-size: var(--stage-bg-scale) auto;
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center var(--stage-bg-focus-y);
+  background-color: #241a12;
   overflow: hidden;
   touch-action: none;
   padding: 8px 12px 12px;
@@ -897,7 +898,7 @@ input {
   right: 0;
   bottom: var(--stage-menu-space);
   z-index: 2;
-  background: linear-gradient(180deg, rgba(12, 12, 12, 0.04) 0%, rgba(5, 5, 5, 0.12) 100%);
+  background: transparent;
 }
 
 .stage-scenery-floor {
