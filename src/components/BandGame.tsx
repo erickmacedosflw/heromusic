@@ -24,7 +24,7 @@ const instrumentLabels: Record<Instrument, string> = {
   keys: 'Teclado',
 };
 
-const defaultStageBackground = new URL('../rsc/images/palcos/garagem.jpg', import.meta.url).href;
+const defaultStageBackground = new URL('../rsc/images/palcos/palco_garagem.png', import.meta.url).href;
 const iconCache = new URL('../rsc/images/icons/cache_borda_brnca.png', import.meta.url).href;
 const iconCost = new URL('../rsc/images/icons/Custo_borda_branca.png', import.meta.url).href;
 const iconMoneyWhite = new URL('../rsc/images/icons/Dinheiro_Borda_branca.png', import.meta.url).href;
@@ -104,6 +104,7 @@ type MusicianData = {
   Instrumentista: string;
   Instrumento: number;
   Asset_Face: string;
+  Asset_Portrait?: string;
   Asset: string;
   Asset_Char?: string;
   Hype: number;
@@ -138,6 +139,11 @@ const musicStreamAssetMap = import.meta.glob('../rsc/musics/**/*.mp3', {
   import: 'default',
 }) as Record<string, string>;
 const musicianFaceAssetMap = import.meta.glob('../rsc/images/facesets/*.{png,jpg,jpeg,webp}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+const musicianPortraitAssetMap = import.meta.glob('../rsc/images/portraits/*.{png,jpg,jpeg,webp}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -195,6 +201,20 @@ const resolveMusicianFaceAsset = (faceAsset: string) => {
   }
 
   return null;
+};
+
+const resolveMusicianPortraitAsset = (portraitAsset: string) => {
+  if (!portraitAsset) {
+    return null;
+  }
+
+  if (portraitAsset.startsWith('src/')) {
+    const viteAssetPath = `../${portraitAsset.replace(/^src\//, '')}`;
+    return musicianPortraitAssetMap[viteAssetPath] ?? null;
+  }
+
+  const directPortraitPath = `../rsc/images/portraits/${portraitAsset}`;
+  return musicianPortraitAssetMap[directPortraitPath] ?? null;
 };
 
 const getHowlCurrentTime = (audio: Howl | null) => {
@@ -279,7 +299,6 @@ const DEFAULT_MUSIC_BPM = 120;
 const PRE_MUSIC_TAP_GAIN = 6.2;
 const PRE_MUSIC_DECAY = 0.9;
 const POST_MUSIC_DECAY = 1.3;
-const CROWD_DECAY_WHEN_STOPPED = 1;
 const CROWD_DECAY_EVERY_STEPS = 1;
 const TAP_EFFECT_LIFETIME_MS = 140;
 const MAX_TAP_EFFECTS = 12;
@@ -390,6 +409,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const soldOutHandledRef = useRef(false);
   const fameProgressRef = useRef(0);
   const crowdDecayStepRef = useRef(0);
+  const crowdDecayAmountRef = useRef(0);
   const fansStepIndexRef = useRef(0);
   const fansStepFlashTimeoutRef = useRef<number | null>(null);
   const [tapEffects, setTapEffects] = useState<Array<{ id: number; x: number; y: number }>>([]);
@@ -579,6 +599,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     : null;
   const selectedMusicianFace = selectedMusicianDetails
     ? resolveMusicianFaceAsset(selectedMusicianDetails.Asset_Face)
+    : null;
+  const selectedMusicianPortrait = selectedMusicianDetails
+    ? resolveMusicianPortraitAsset(selectedMusicianDetails.Asset_Portrait ?? '')
     : null;
   const selectedMusicianInitials = selectedMusicianDetails
     ? selectedMusicianDetails.Instrumentista
@@ -778,6 +801,47 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const drumsMusician = musicians.find((item) => item.ID === activeBand.musicians.drums.musicianId);
   const keysMusician = musicians.find((item) => item.ID === activeBand.musicians.keys.musicianId);
 
+  const stageBandPerformers = [
+    {
+      instrument: 'drums' as const,
+      musician: drumsMusician,
+      isHired: activeBand.musicians.drums.hired,
+    },
+    {
+      instrument: 'guitar' as const,
+      musician: guitarMusician,
+      isHired: activeBand.musicians.guitar.hired,
+    },
+    {
+      instrument: 'bass' as const,
+      musician: bassMusician,
+      isHired: activeBand.musicians.bass.hired,
+    },
+    {
+      instrument: 'keys' as const,
+      musician: keysMusician,
+      isHired: activeBand.musicians.keys.hired,
+    },
+  ]
+    .map((entry) => {
+      if (!entry.isHired || !entry.musician) {
+        return null;
+      }
+
+      const portraitSrc = resolveMusicianPortraitAsset(entry.musician.Asset_Portrait ?? '');
+      if (!portraitSrc) {
+        return null;
+      }
+
+      return {
+        instrument: entry.instrument,
+        id: entry.musician.ID,
+        name: entry.musician.Instrumentista,
+        portraitSrc,
+      };
+    })
+    .filter((entry): entry is { instrument: Instrument; id: number; name: string; portraitSrc: string } => Boolean(entry));
+
   const bandInstrumentColumns: Array<{
     id: Instrument;
     label: string;
@@ -855,6 +919,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         name: string;
         firstName: string;
         face: string | null;
+        portrait: string | null;
         rarityClass: 'bronze' | 'silver' | 'gold';
         rarityLabel: string;
         hype: number;
@@ -874,6 +939,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
           name: musician.Instrumentista,
           firstName: musician.Instrumentista.split(' ')[0] ?? 'Músico',
           face: resolveMusicianFaceAsset(musician.Asset_Face),
+          portrait: resolveMusicianPortraitAsset(musician.Asset_Portrait ?? ''),
           rarityClass: rarity.className,
           rarityLabel: rarity.label,
           hype: musician.Hype,
@@ -1518,7 +1584,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         crowdDecayStepRef.current += 1;
         if (crowdDecayStepRef.current >= CROWD_DECAY_EVERY_STEPS) {
           crowdDecayStepRef.current = 0;
-          setShowCrowd((current) => Math.max(0, current - CROWD_DECAY_WHEN_STOPPED));
+          setShowCrowd((current) => Math.max(0, current - crowdDecayAmountRef.current));
         }
       } else {
         crowdDecayStepRef.current = 0;
@@ -1630,6 +1696,10 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [hasActiveMusicians]);
 
   useEffect(() => {
+    crowdDecayAmountRef.current = Math.max(0, Math.floor(bandFansValue));
+  }, [bandFansValue]);
+
+  useEffect(() => {
     isMusicEnabledRef.current = isMusicEnabled;
   }, [isMusicEnabled]);
 
@@ -1730,6 +1800,17 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <div className={`stage-loop-fade${isLoopTransitioning ? ' show' : ''}`} aria-hidden="true" />
       <div className="stage-overlay" />
       <div className="stage-scenery-floor" aria-hidden="true" />
+      <div className="stage-band-performers" aria-hidden="true">
+        {stageBandPerformers.map((performer) => (
+          <div
+            key={`${performer.instrument}-${performer.id}`}
+            className={`stage-performer stage-performer-${performer.instrument}`}
+          >
+            <img src={performer.portraitSrc} alt="" className="stage-performer-shadow" />
+            <img src={performer.portraitSrc} alt="" className="stage-performer-portrait" />
+          </div>
+        ))}
+      </div>
       <StageVisualEffectsLayer
         tapEffects={tapEffects}
         rewardParticles={rewardParticles}
@@ -1760,6 +1841,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         iconCost={iconCost}
         selectedMusicianDetails={selectedMusicianDetails}
         selectedMusicianFace={selectedMusicianFace}
+        selectedMusicianPortrait={selectedMusicianPortrait}
         selectedMusicianInitials={selectedMusicianInitials}
         selectedMusicianRarityClass={selectedMusicianRarityClass}
         isClosingMusicianDetails={isClosingMusicianDetails}

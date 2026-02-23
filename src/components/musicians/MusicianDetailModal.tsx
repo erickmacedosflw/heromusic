@@ -5,6 +5,7 @@ type MusicianData = {
   Instrumentista: string;
   Instrumento: number;
   Asset_Face: string;
+  Asset_Portrait?: string;
   Asset: string;
   Asset_Char?: string;
   Hype: number;
@@ -22,6 +23,7 @@ type MusicianData = {
 type MusicianDetailModalProps = {
   musician: MusicianData | null;
   selectedMusicianFace: string | null;
+  selectedMusicianPortrait?: string | null;
   selectedMusicianInitials: string;
   selectedMusicianRarityClass: 'bronze' | 'silver' | 'gold' | null;
   selectedInstrumentIcon: string;
@@ -52,11 +54,13 @@ type MusicianDetailModalProps = {
   onCloseDetails: () => void;
   onToggleStory: () => void;
   onHireSelected: () => void;
+  displayMode?: 'card' | 'hero-stage';
 };
 
 const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
   musician,
   selectedMusicianFace,
+  selectedMusicianPortrait,
   selectedMusicianInitials,
   selectedMusicianRarityClass,
   selectedInstrumentIcon,
@@ -82,14 +86,61 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
   onCloseDetails,
   onToggleStory,
   onHireSelected,
+  displayMode = 'card',
 }) => {
-  if (!musician) {
+  const [displayMusician, setDisplayMusician] = React.useState<MusicianData | null>(musician);
+  const [isContentLeaving, setIsContentLeaving] = React.useState(false);
+  const [isContentEntering, setIsContentEntering] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!musician) {
+      setDisplayMusician(null);
+      setIsContentLeaving(false);
+      setIsContentEntering(false);
+      return;
+    }
+
+    if (!displayMusician || displayMusician.ID === musician.ID) {
+      setDisplayMusician(musician);
+      return;
+    }
+
+    setIsContentLeaving(true);
+
+    const switchTimer = window.setTimeout(() => {
+      setDisplayMusician(musician);
+      setIsContentLeaving(false);
+      setIsContentEntering(true);
+    }, 130);
+
+    const settleTimer = window.setTimeout(() => {
+      setIsContentEntering(false);
+    }, 340);
+
+    return () => {
+      window.clearTimeout(switchTimer);
+      window.clearTimeout(settleTimer);
+    };
+  }, [musician, displayMusician]);
+
+  const currentMusician = displayMusician;
+
+  if (!currentMusician) {
     return null;
   }
 
+  const rarityLabel = selectedMusicianRarityClass === 'gold'
+    ? 'Ouro'
+    : selectedMusicianRarityClass === 'silver'
+      ? 'Prata'
+      : 'Bronze';
+
+  const displayPortrait = selectedMusicianPortrait ?? selectedMusicianFace;
+  const transitionClass = `musician-detail-transition${isContentLeaving ? ' leaving' : ''}${isContentEntering ? ' entering' : ''}`;
+
   return (
     <article
-      className={`musician-detail-card${selectedMusicianRarityClass ? ` rarity-${selectedMusicianRarityClass}` : ''}${isClosing ? ' closing' : ' show'}${isStoryOpen ? ' story-open' : ''}`}
+      className={`musician-detail-card${selectedMusicianRarityClass ? ` rarity-${selectedMusicianRarityClass}` : ''}${isClosing ? ' closing' : ' show'}${isStoryOpen ? ' story-open' : ''}${displayMode === 'hero-stage' ? ' hero-stage' : ''}${customAction ? ' has-custom-action' : ''}`}
     >
       <button
         type="button"
@@ -113,11 +164,89 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
       ) : null}
       {isStoryOpen ? (
         <div className="musician-detail-story">
-          <p>{musician.Historia}</p>
+          <p>{currentMusician.Historia}</p>
         </div>
+      ) : displayMode === 'hero-stage' ? (
+        <>
+          <header className={`musician-hero-header ${transitionClass}`}>
+            <strong>{currentMusician.Instrumentista}</strong>
+          </header>
+
+          <div className={`musician-hero-scene ${transitionClass}`}>
+            <span className="musician-hero-stat stat-hype">
+              <span className="musician-attr-stat-head">
+                <img src={iconFameWhite} alt="" aria-hidden="true" />
+                <span>Hype</span>
+              </span>
+              <strong>+{formatNumber(currentMusician.Hype)}</strong>
+            </span>
+            <span className="musician-hero-stat stat-fans">
+              <span className="musician-attr-stat-head">
+                <img src={iconFansWhite} alt="" aria-hidden="true" />
+                <span>Público</span>
+              </span>
+              <strong>+{formatNumber(currentMusician.Fans)}</strong>
+            </span>
+            <span className="musician-hero-stat stat-performance">
+              <span className="musician-attr-stat-head">
+                <img src={iconRhythmWhite} alt="" aria-hidden="true" />
+                <span>Perf.</span>
+              </span>
+              <strong>{formatPerformancePercent(currentMusician.Apresentacao)}</strong>
+            </span>
+            <span className="musician-hero-stat stat-cache">
+              <span className="musician-attr-stat-head">
+                <img src={iconCost} alt="" aria-hidden="true" />
+                <span>Cachê</span>
+              </span>
+              <strong>- R$ {formatNumber(currentMusician.Cache).replace(/,00$/, '')}</strong>
+            </span>
+
+            <div className="musician-hero-floor" aria-hidden="true" />
+            <div className="musician-hero-shadow" aria-hidden="true" />
+            <div className={`musician-hero-portrait${currentMusician.Instrumento === 3 ? ' is-drummer' : ''}`} aria-hidden="true">
+              {displayPortrait ? (
+                <img src={displayPortrait} alt="" className="musician-hero-portrait-image" />
+              ) : (
+                <div className="musician-hero-portrait-fallback">{selectedMusicianInitials}</div>
+              )}
+            </div>
+
+            <div className="musician-hero-cta-stack">
+              <span className="musician-hero-instrument-badge">
+                <img
+                  src={selectedInstrumentIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="musician-instrument-mini"
+                />
+                <span>{instrumentNameById[currentMusician.Instrumento] ?? 'Instrumento'}</span>
+              </span>
+              {customAction ? (
+                <button
+                  type="button"
+                  className={`musician-hero-hire-btn${customAction.variant === 'remove' ? ' is-remove' : ' is-select'}`}
+                  disabled={customAction.disabled}
+                  onClick={customAction.onClick}
+                >
+                  <span>{customAction.label}</span>
+                </button>
+              ) : !isSelectedMusicianHired && canHireSelectedMusician ? (
+                <button
+                  type="button"
+                  className="musician-hero-hire-btn"
+                  onClick={onHireSelected}
+                >
+                  <img src={iconMoneyWhite} alt="" aria-hidden="true" />
+                  <span>R$ {formatNumber(selectedMusicianPrice)}</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </>
       ) : (
         <>
-          <div className="musician-detail-body">
+          <div className={`musician-detail-body ${transitionClass}`}>
             <div className="musician-detail-photo" aria-hidden="true">
               {selectedMusicianFace ? (
                 <img src={selectedMusicianFace} alt="" className="musician-detail-face" />
@@ -127,7 +256,7 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
             </div>
             <div className="musician-detail-side">
               <header className="musician-detail-header">
-                <strong>{musician.Instrumentista}</strong>
+                <strong>{currentMusician.Instrumentista}</strong>
                 <span>Músico disponível</span>
               </header>
               <div className="musician-detail-badges">
@@ -138,10 +267,10 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
                     aria-hidden="true"
                     className="musician-instrument-mini"
                   />
-                  <span>{instrumentNameById[musician.Instrumento] ?? 'Instrumento'}</span>
+                  <span>{instrumentNameById[currentMusician.Instrumento] ?? 'Instrumento'}</span>
                 </span>
                 <span className={`musician-rarity ${selectedMusicianRarityClass ?? 'bronze'}`}>
-                  {selectedMusicianRarityClass === 'gold' ? 'Ouro' : selectedMusicianRarityClass === 'silver' ? 'Prata' : 'Bronze'}
+                  {rarityLabel}
                 </span>
                 {isSelectedMusicianHired ? <span className="musician-status-badge">Contratado</span> : null}
                 {!isSelectedMusicianHired ? (
@@ -157,39 +286,39 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
               </div>
             </div>
           </div>
-          <div className="musician-attr-grid">
+          <div className={`musician-attr-grid ${transitionClass}`}>
             <span className="musician-attr-stat">
               <span className="musician-attr-stat-head">
                 <img src={iconFameWhite} alt="" aria-hidden="true" />
                 <span>Hype</span>
               </span>
-              <strong>+{formatNumber(musician.Hype)}</strong>
+              <strong>+{formatNumber(currentMusician.Hype)}</strong>
             </span>
             <span className="musician-attr-stat">
               <span className="musician-attr-stat-head">
                 <img src={iconFansWhite} alt="" aria-hidden="true" />
                 <span>Público</span>
               </span>
-              <strong>+{formatNumber(musician.Fans)}</strong>
+              <strong>+{formatNumber(currentMusician.Fans)}</strong>
             </span>
             <span className="musician-attr-stat">
               <span className="musician-attr-stat-head">
                 <img src={iconRhythmWhite} alt="" aria-hidden="true" />
                 <span>Perf.</span>
               </span>
-              <strong>{formatPerformancePercent(musician.Apresentacao)}</strong>
+              <strong>{formatPerformancePercent(currentMusician.Apresentacao)}</strong>
             </span>
             <span className="musician-attr-stat">
               <span className="musician-attr-stat-head">
                 <img src={iconCost} alt="" aria-hidden="true" />
                 <span>Cachê</span>
               </span>
-              <strong>- R$ {formatNumber(musician.Cache).replace(/,00$/, '')}</strong>
+              <strong>- R$ {formatNumber(currentMusician.Cache).replace(/,00$/, '')}</strong>
             </span>
           </div>
         </>
       )}
-      {customAction ? (
+      {customAction && displayMode !== 'hero-stage' ? (
         <button
           type="button"
           className={`musician-detail-hire-btn${customAction.variant === 'remove' ? ' is-remove' : ' is-select'}`}
@@ -198,7 +327,7 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
         >
           <span>{customAction.label}</span>
         </button>
-      ) : !isSelectedMusicianHired ? (
+      ) : !isSelectedMusicianHired && displayMode !== 'hero-stage' ? (
         <button
           type="button"
           className="musician-detail-hire-btn"

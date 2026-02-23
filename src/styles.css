@@ -826,15 +826,18 @@ input {
 
 .stage-screen {
   --stage-menu-space: 180px;
-  --stage-bg-offset-y: -170px;
+  --stage-bg-offset-y: 0px;
+  --stage-bg-scale: 100%;
+  --stage-video-scale: 1;
+  --stage-bg-focus-y: 56%;
   --stage-top-overlay-safe: 58px;
   position: relative;
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  background-size: 100% auto;
+  background-size: var(--stage-bg-scale) auto;
   background-repeat: no-repeat;
-  background-position: center var(--stage-bg-offset-y);
+  background-position: center var(--stage-bg-focus-y);
   overflow: hidden;
   touch-action: none;
   padding: 8px 12px 12px;
@@ -852,7 +855,9 @@ input {
   width: 100%;
   height: calc(100% - var(--stage-menu-space));
   object-fit: cover;
-  object-position: center var(--stage-bg-offset-y);
+  object-position: center var(--stage-bg-focus-y);
+  transform: scale(var(--stage-video-scale));
+  transform-origin: top center;
   z-index: 0;
   pointer-events: none;
 }
@@ -890,7 +895,7 @@ input {
   right: auto;
   width: 100vw;
   max-width: 100vw;
-  top: 50%;
+  top: 56%;
   bottom: -18vh;
   z-index: 2;
   pointer-events: none;
@@ -909,7 +914,7 @@ input {
   background-position: center, center, center top, center;
   background-repeat: no-repeat, no-repeat, repeat, repeat;
   transform-origin: top center;
-  transform: translateX(-50%) perspective(980px) rotateX(76deg) translateY(-8%) scaleY(1.35);
+  transform: translateX(-50%) perspective(980px) rotateX(74deg) translateY(-6%) scaleY(1.28);
   clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
   border-top: 1px solid rgba(255, 240, 216, 0.34);
   box-shadow:
@@ -939,6 +944,121 @@ input {
     radial-gradient(ellipse at center top, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0) 58%);
 }
 
+.stage-band-performers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--stage-menu-space);
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.stage-performer {
+  position: absolute;
+  transform: translateX(-50%);
+  will-change: transform;
+}
+
+.stage-performer-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%) scaleY(0.24) skewX(-10deg);
+  transform-origin: center bottom;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0.34;
+  filter: brightness(0) saturate(0) blur(3px);
+  pointer-events: none;
+}
+
+.stage-performer::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 56%;
+  height: 14%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.12) 54%, rgba(0, 0, 0, 0) 100%);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.stage-performer-portrait {
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.44));
+}
+
+.stage-performer-drums {
+  left: 50%;
+  bottom: 176px;
+  z-index: 1;
+}
+
+.stage-performer-drums .stage-performer-portrait {
+  width: clamp(128px, 20vw, 180px);
+  max-height: clamp(172px, 27vh, 256px);
+}
+
+.stage-performer-drums .stage-performer-shadow {
+  width: clamp(128px, 20vw, 180px);
+  max-height: clamp(172px, 27vh, 256px);
+}
+
+.stage-performer-guitar {
+  left: 28%;
+  bottom: 116px;
+  z-index: 2;
+}
+
+.stage-performer-guitar .stage-performer-portrait {
+  width: clamp(106px, 17.8vw, 156px);
+  max-height: clamp(146px, 25.8vh, 224px);
+}
+
+.stage-performer-guitar .stage-performer-shadow {
+  width: clamp(106px, 17.8vw, 156px);
+  max-height: clamp(146px, 25.8vh, 224px);
+}
+
+.stage-performer-bass {
+  left: 72%;
+  bottom: 116px;
+  z-index: 2;
+}
+
+.stage-performer-bass .stage-performer-portrait {
+  width: clamp(106px, 17.8vw, 156px);
+  max-height: clamp(146px, 25.8vh, 224px);
+}
+
+.stage-performer-bass .stage-performer-shadow {
+  width: clamp(106px, 17.8vw, 156px);
+  max-height: clamp(146px, 25.8vh, 224px);
+}
+
+.stage-performer-keys {
+  left: 50%;
+  bottom: 62px;
+  z-index: 3;
+}
+
+.stage-performer-keys .stage-performer-portrait {
+  width: clamp(118px, 20.2vw, 176px);
+  max-height: clamp(158px, 28.2vh, 240px);
+}
+
+.stage-performer-keys .stage-performer-shadow {
+  width: clamp(118px, 20.2vw, 176px);
+  max-height: clamp(158px, 28.2vh, 240px);
+}
+
 .stage-top-values,
 .stage-progress-list,
 .stage-current-song,
@@ -962,7 +1082,60 @@ input {
 
   .stage-screen {
     --stage-menu-space: 120px;
-    --stage-bg-offset-y: -110px;
+    --stage-bg-offset-y: 0px;
+    --stage-bg-scale: 100%;
+    --stage-video-scale: 1;
+    --stage-bg-focus-y: 58%;
+  }
+
+  .stage-performer-drums {
+    bottom: 142px;
+  }
+
+  .stage-performer-guitar {
+    left: 26%;
+    bottom: 98px;
+  }
+
+  .stage-performer-bass {
+    left: 74%;
+    bottom: 98px;
+  }
+
+  .stage-performer-keys {
+    bottom: 58px;
+  }
+
+  .stage-performer-drums .stage-performer-portrait {
+    width: clamp(114px, 29vw, 154px);
+    max-height: clamp(154px, 25vh, 220px);
+  }
+
+  .stage-performer-drums .stage-performer-shadow {
+    width: clamp(114px, 29vw, 154px);
+    max-height: clamp(154px, 25vh, 220px);
+  }
+
+  .stage-performer-guitar .stage-performer-portrait,
+  .stage-performer-bass .stage-performer-portrait {
+    width: clamp(98px, 26.4vw, 136px);
+    max-height: clamp(134px, 23.6vh, 194px);
+  }
+
+  .stage-performer-guitar .stage-performer-shadow,
+  .stage-performer-bass .stage-performer-shadow {
+    width: clamp(98px, 26.4vw, 136px);
+    max-height: clamp(134px, 23.6vh, 194px);
+  }
+
+  .stage-performer-keys .stage-performer-portrait {
+    width: clamp(110px, 28.4vw, 148px);
+    max-height: clamp(148px, 25.6vh, 214px);
+  }
+
+  .stage-performer-keys .stage-performer-shadow {
+    width: clamp(110px, 28.4vw, 148px);
+    max-height: clamp(148px, 25.6vh, 214px);
   }
 
   .menu-shell {

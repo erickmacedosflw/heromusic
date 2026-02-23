@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Instrument } from '../../state/gameStore';
 import BandInstrumentSelector from './BandInstrumentSelector';
+import MusicianDetailModal from '../musicians/MusicianDetailModal';
 import './BandManagementScreen.css';
 
 type BandMenuView = 'band' | 'specials' | 'analysis';
@@ -23,6 +24,7 @@ type SelectorMusician = {
   name: string;
   firstName: string;
   face: string | null;
+  portrait: string | null;
   rarityClass: 'bronze' | 'silver' | 'gold';
   rarityLabel: string;
   hype: number;
@@ -100,31 +102,184 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
   onSelectMusician,
   onCloseScreen,
 }) => {
+  const DETAIL_CLOSE_MS = 180;
+  const [selectedSelectorDetail, setSelectedSelectorDetail] = React.useState<SelectorMusician | null>(null);
+  const [isDetailClosing, setIsDetailClosing] = React.useState(false);
+  const detailCloseTimeoutRef = React.useRef<number | null>(null);
+
+  const isSelectorDetailOpen = Boolean(selectedSelectorDetail);
+
+  const instrumentIdByKey: Record<Instrument, number> = {
+    guitar: 1,
+    bass: 2,
+    drums: 3,
+    keys: 4,
+  };
+
+  const instrumentRoleByKey: Record<Instrument, string> = {
+    guitar: 'guitarrista',
+    bass: 'baixista',
+    drums: 'baterista',
+    keys: 'tecladista',
+  };
+
+  const instrumentNameById: Record<number, string> = {
+    1: instrumentLabels.guitar,
+    2: instrumentLabels.bass,
+    3: instrumentLabels.drums,
+    4: instrumentLabels.keys,
+  };
+
+  const activeBandColumn = activeBandSelectorInstrument
+    ? bandInstrumentColumns.find((column) => column.id === activeBandSelectorInstrument)
+    : null;
+
+  const activeInstrumentIcon = activeBandColumn?.icon ?? iconMusicoVazio;
+  const activeInstrumentRole = activeBandSelectorInstrument ? instrumentRoleByKey[activeBandSelectorInstrument] : 'músico';
+
+  const openSelectorDetail = (musician: SelectorMusician) => {
+    if (detailCloseTimeoutRef.current) {
+      window.clearTimeout(detailCloseTimeoutRef.current);
+      detailCloseTimeoutRef.current = null;
+    }
+
+    setIsDetailClosing(false);
+    setSelectedSelectorDetail(musician);
+  };
+
+  const closeSelectorDetail = () => {
+    if (!selectedSelectorDetail) {
+      return;
+    }
+
+    if (detailCloseTimeoutRef.current) {
+      window.clearTimeout(detailCloseTimeoutRef.current);
+      detailCloseTimeoutRef.current = null;
+    }
+
+    setIsDetailClosing(true);
+    detailCloseTimeoutRef.current = window.setTimeout(() => {
+      setSelectedSelectorDetail(null);
+      setIsDetailClosing(false);
+      detailCloseTimeoutRef.current = null;
+    }, DETAIL_CLOSE_MS);
+  };
+
+  const closeSelectorAndDetail = (action: () => void) => {
+    if (detailCloseTimeoutRef.current) {
+      window.clearTimeout(detailCloseTimeoutRef.current);
+      detailCloseTimeoutRef.current = null;
+    }
+
+    setSelectedSelectorDetail(null);
+    setIsDetailClosing(false);
+    action();
+    onCloseSelector();
+  };
+
+  React.useEffect(() => {
+    if (!activeBandSelectorInstrument) {
+      setSelectedSelectorDetail(null);
+      setIsDetailClosing(false);
+    }
+  }, [activeBandSelectorInstrument]);
+
+  React.useEffect(() => {
+    return () => {
+      if (detailCloseTimeoutRef.current) {
+        window.clearTimeout(detailCloseTimeoutRef.current);
+        detailCloseTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   if (!isVisible) {
     return null;
   }
 
   return (
     <div className={`band-management-screen${isClosing ? ' closing' : ''}`} style={{ backgroundImage: `url(${backgroundBackstage})` }}>
-      <div className="band-management-content">
+      <div className={`band-management-content${isSelectorDetailOpen ? ' detail-open' : ''}`}>
         <div className="band-management-top-hero">
           <div className="musicians-contract-overlay" />
-          <div className="band-management-header">
+          <div className={`band-management-header${isSelectorDetailOpen ? ' hidden' : ''}`}>
             <h2>Banda</h2>
             <p>Gerencie os músicos da sua banda</p>
-            <button
-              type="button"
-              className="musicians-close-btn"
-              onClick={onCloseScreen}
-              data-click-sfx="close"
-              aria-label="Fechar tela da banda"
-            >
-              <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
-            </button>
+            {!isSelectorDetailOpen ? (
+              <button
+                type="button"
+                className="musicians-close-btn"
+                onClick={onCloseScreen}
+                data-click-sfx="close"
+                aria-label="Fechar tela da banda"
+              >
+                <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
+              </button>
+            ) : null}
           </div>
+
+          {activeBandSelectorInstrument && selectedSelectorDetail ? (
+            <MusicianDetailModal
+              musician={{
+                ID: selectedSelectorDetail.id,
+                Instrumentista: selectedSelectorDetail.name,
+                Instrumento: instrumentIdByKey[activeBandSelectorInstrument],
+                Asset_Face: '',
+                Asset: '',
+                Hype: selectedSelectorDetail.hype,
+                Fans: selectedSelectorDetail.fans,
+                Apresentacao: selectedSelectorDetail.performance,
+                Sexo: '',
+                Custo: 0,
+                Cache: selectedSelectorDetail.cache,
+                Nivel: selectedSelectorDetail.rarityClass === 'gold' ? 3 : selectedSelectorDetail.rarityClass === 'silver' ? 2 : 1,
+                ID_Instrumento: instrumentIdByKey[activeBandSelectorInstrument],
+                Contratado: selectedSelectorMusicianId === selectedSelectorDetail.id,
+                Historia: '',
+              }}
+              selectedMusicianFace={selectedSelectorDetail.face}
+              selectedMusicianPortrait={selectedSelectorDetail.portrait}
+              selectedMusicianInitials={selectedSelectorDetail.firstName.slice(0, 2).toUpperCase()}
+              selectedMusicianRarityClass={selectedSelectorDetail.rarityClass}
+              selectedInstrumentIcon={activeInstrumentIcon}
+              isClosing={isDetailClosing}
+              isStoryOpen={false}
+              isSelectedMusicianHired={selectedSelectorMusicianId === selectedSelectorDetail.id}
+              isSelectedMusicianLockedByCoins={false}
+              canHireSelectedMusician={true}
+              selectedMusicianPrice={0}
+              iconFechar={iconFechar}
+              iconBloqueado={iconBloqueado}
+              iconDisponivel={iconDisponivel}
+              iconMoneyWhite={iconMoneyWhite}
+              iconFameWhite={iconFameWhite}
+              iconFansWhite={iconFansWhite}
+              iconRhythmWhite={iconRhythmWhite}
+              iconCost={iconCost}
+              formatNumber={formatNumber}
+              formatPerformancePercent={formatPerformancePercent}
+              instrumentNameById={instrumentNameById}
+              displayMode="hero-stage"
+              showStoryToggle={false}
+              customAction={selectedSelectorMusicianId === selectedSelectorDetail.id
+                ? {
+                  label: `Remover ${activeInstrumentRole}`,
+                  variant: 'remove',
+                  onClick: () => closeSelectorAndDetail(() => onSelectEmpty(activeBandSelectorInstrument)),
+                }
+                : {
+                  label: `Selecionar ${activeInstrumentRole}`,
+                  variant: 'select',
+                  onClick: () => closeSelectorAndDetail(() => onSelectMusician(activeBandSelectorInstrument, selectedSelectorDetail.id)),
+                }}
+              onCloseDetails={closeSelectorDetail}
+              onToggleStory={() => undefined}
+              onHireSelected={() => undefined}
+            />
+          ) : null}
         </div>
 
-        <div className="band-management-bottom-panel">
+        <div className={`band-management-bottom-panel${isSelectorDetailOpen ? ' detail-open' : ''}`}>
           <div className="band-management-placeholder">
             <div className="band-menu-nav">
               {bandMenuOptions.map((option) => (
@@ -168,22 +323,16 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
                 <BandInstrumentSelector
                   bandInstrumentColumns={bandInstrumentColumns}
                   activeInstrument={activeBandSelectorInstrument}
+                  isDetailOpen={isSelectorDetailOpen}
                   selectorMusicians={selectorMusicians}
                   selectedMusicianId={selectedSelectorMusicianId}
                   instrumentLabels={instrumentLabels}
                   iconFechar={iconFechar}
-                  iconBloqueado={iconBloqueado}
-                  iconDisponivel={iconDisponivel}
                   iconMusicoVazio={iconMusicoVazio}
-                  iconMoneyWhite={iconMoneyWhite}
-                  iconFameWhite={iconFameWhite}
-                  iconFansWhite={iconFansWhite}
-                  iconRhythmWhite={iconRhythmWhite}
-                  iconCost={iconCost}
                   onOpenInstrument={onOpenInstrument}
                   onCloseSelector={onCloseSelector}
                   onSelectEmpty={onSelectEmpty}
-                  onSelectMusician={onSelectMusician}
+                  onOpenMusicianDetail={openSelectorDetail}
                 />
               </>
             ) : (

@@ -32,15 +32,27 @@
 .band-management-top-hero {
   position: relative;
   z-index: 2;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 12px;
   min-height: clamp(250px, 36vh, 320px);
   padding: calc(14px + var(--stage-top-overlay-safe)) 12px 8px;
   overflow: visible;
+}
+
+.band-management-content.detail-open .band-management-top-hero {
+  min-height: clamp(320px, 46vh, 410px);
 }
 
 .band-management-header {
   position: relative;
   z-index: 2;
   text-align: center;
+}
+
+.band-management-header.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .band-management-header h2 {
@@ -68,6 +80,10 @@
   min-height: 0;
   margin-top: -10px;
   box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.18);
+}
+
+.band-management-bottom-panel.detail-open {
+  margin-top: -10px;
 }
 
 .band-management-placeholder {
