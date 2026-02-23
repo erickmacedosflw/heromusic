@@ -67,8 +67,8 @@ const generalShot: CameraShot = {
 const sweepShotLeft: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(-3.3, 3.4, 2.15),
-  look: new THREE.Vector3(-0.15, 1.16, 0.2),
+  pos: new THREE.Vector3(-0.85, 3.45, 2.35),
+  look: new THREE.Vector3(-0.06, 1.14, 0.22),
   fov: 52,
   duration: 8,
 };
@@ -76,8 +76,8 @@ const sweepShotLeft: CameraShot = {
 const sweepShotRight: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(3.3, 3.4, 2.15),
-  look: new THREE.Vector3(0.15, 1.16, 0.2),
+  pos: new THREE.Vector3(0.85, 3.45, 2.35),
+  look: new THREE.Vector3(0.06, 1.14, 0.22),
   fov: 52,
   duration: 8,
 };
@@ -225,7 +225,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       toneMapped: false,
     });
     const backgroundPlane = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-    backgroundPlane.position.set(0, 13.7, -44);
+    backgroundPlane.position.set(0, 12.8, -44);
     backgroundPlane.renderOrder = -20;
     scene.add(backgroundPlane);
 
