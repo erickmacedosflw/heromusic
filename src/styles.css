@@ -1027,7 +1027,8 @@ input {
 }
 
 .stage-band-performers.is-close-up .stage-performer.is-focused .stage-performer-portrait {
-  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.52));
+  transform: scale(calc(var(--portrait-base-scale) * 1.22));
+  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.52));
 }
 
 .stage-band-performers.is-close-up .stage-performer.is-background {
@@ -1045,7 +1046,7 @@ input {
 .stage-performer-drums {
   --parallax-x-mult: 0.22;
   --parallax-y-mult: 0.2;
-  --zoom-mult: 0.05;
+  --zoom-mult: 0.12;
   left: 50%;
   bottom: 176px;
   z-index: 1;

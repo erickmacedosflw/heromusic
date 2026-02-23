@@ -1825,7 +1825,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     stageElement.style.setProperty('--stage-camera-yaw', `${frame.yawDeg.toFixed(2)}deg`);
     stageElement.style.setProperty('--stage-camera-shift-x', `${frame.shiftX.toFixed(2)}px`);
     stageElement.style.setProperty('--stage-camera-shift-y', `${frame.shiftY.toFixed(2)}px`);
-    stageElement.style.setProperty('--stage-camera-zoom', `${(1 + frame.zoom * 0.08).toFixed(4)}`);
+    stageElement.style.setProperty('--stage-camera-zoom', `${(1 + frame.zoom * 0.34).toFixed(4)}`);
     stageElement.style.setProperty('--stage-depth-blur', `${frame.depthBlur.toFixed(2)}px`);
     setFocusedPerformerInstrument(frame.focusInstrument);
     setStageDepthBlur(frame.depthBlur);
@@ -1880,11 +1880,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
               const focusDepth = performerDepthByInstrument[focusedPerformerInstrument];
               const performerDepth = performerDepthByInstrument[performer.instrument as StagePerformerInstrument] ?? focusDepth;
-              const distance = Math.abs(performerDepth - focusDepth);
-              const normalizedDistance = Math.min(1, distance / 0.82);
               const behindDistance = Math.max(0, focusDepth - performerDepth);
               const behindFactor = Math.min(1, behindDistance / 0.86);
-              const zoomWeight = 0.52 + stageZoomLevel * 0.88;
+              const zoomWeight = 0.58 + stageZoomLevel * 0.7;
 
               const blurAmount = focusedPerformerInstrument === performer.instrument
                 ? Math.max(0, stageDepthBlur * 0.08)

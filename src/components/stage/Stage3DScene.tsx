@@ -22,7 +22,7 @@ type Stage3DSceneProps = {
   onShadowFrame?: (shadow: { offsetX: number; offsetY: number; blur: number; opacity: number; floorDepth: number }) => void;
 };
 
-const baseCameraPosition = new THREE.Vector3(0, 4.85, 10.7);
+const baseCameraPosition = new THREE.Vector3(0, 4.85, 10.9);
 const baseLookAtPosition = new THREE.Vector3(0, 0.72, 0.45);
 
 const performerPositions: Record<StagePerformerInstrument, THREE.Vector3> = {
@@ -103,9 +103,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x121212, 10, 30);
+    scene.fog = new THREE.Fog(0x2a2a2a, 12, 40);
 
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
     camera.position.copy(baseCameraPosition);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.78);
@@ -128,6 +128,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     const backLight = new THREE.DirectionalLight(0xffffff, 0.34);
     backLight.position.set(0, 6.4, -8);
     scene.add(backLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xd7e7ff, 0x6a4f3d, 0.45);
+    scene.add(hemiLight);
 
     const floorTexture = new THREE.TextureLoader().load(textureUrl);
     floorTexture.colorSpace = THREE.SRGBColorSpace;
@@ -186,8 +189,8 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const bokehPass = new BokehPass(scene, camera, {
       focus: 8,
-      aperture: 0.000035,
-      maxblur: 0.0018,
+      aperture: 0.00003,
+      maxblur: 0.0015,
     });
     composer.addPass(bokehPass);
 
@@ -292,9 +295,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
           10.45 + Math.cos(elapsed * (defaultSwaySpeed * 0.44)) * defaultSwayZ
         );
         const closePose = new THREE.Vector3(
-          focusPosition.x * 0.62 + Math.sin(elapsed * 1.28) * 0.02,
-          2.36 + Math.sin(elapsed * 1.05) * 0.016,
-          2.82 + Math.cos(elapsed * 1.22) * 0.022
+          focusPosition.x * 0.7 + Math.sin(elapsed * 1.22) * 0.016,
+          2.1 + Math.sin(elapsed * 0.95) * 0.012,
+          2.12 + Math.cos(elapsed * 1.08) * 0.016
         );
 
         const shotDuration = Math.max(0.01, shotDurationRef.current || 3.05);
@@ -304,9 +307,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
         cameraTarget.lerpVectors(widePose, closePose, easeProgress);
         lookAtTarget.set(
-          focusPosition.x * 0.22,
-          1.12 + Math.sin(elapsed * 0.88) * 0.008,
-          focusPosition.z - 0.18
+          focusPosition.x * 0.24,
+          1.1 + Math.sin(elapsed * 0.82) * 0.006,
+          focusPosition.z - 0.08
         );
       } else {
         cameraTarget.set(
@@ -318,13 +321,16 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       }
 
       camera.position.lerp(cameraTarget, playing ? 0.08 : 0.045);
+      const targetFov = playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current ? 30 : 38;
+      camera.fov += (targetFov - camera.fov) * 0.08;
+      camera.updateProjectionMatrix();
       camera.lookAt(lookAtTarget);
 
       const focusDistance = Math.max(1.25, Math.min(14, camera.position.distanceTo(lookAtTarget)));
       const cinematicIntensity = playing && isCinematicModeRef.current && currentFocusedInstrumentRef.current ? 1 : 0;
       bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
-      bokehPass.materialBokeh.uniforms.aperture.value = 0.00003 + cinematicIntensity * 0.00009;
-      bokehPass.materialBokeh.uniforms.maxblur.value = 0.0016 + cinematicIntensity * 0.0062;
+      bokehPass.materialBokeh.uniforms.aperture.value = 0.000025 + cinematicIntensity * 0.000055;
+      bokehPass.materialBokeh.uniforms.maxblur.value = 0.0013 + cinematicIntensity * 0.0036;
 
       if (elapsed - lastCameraFrameSentAtRef.current > 0.06) {
         lastCameraFrameSentAtRef.current = elapsed;
@@ -334,7 +340,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         const zoomDistance = Math.max(4.8, Math.min(11.2, camera.position.distanceTo(lookAtTarget)));
         const normalizedZoom = 1 - (zoomDistance - 4.8) / (11.2 - 4.8);
         const focusInstrument = playing && isCinematicModeRef.current ? currentFocusedInstrumentRef.current : null;
-        const depthBlur = focusInstrument ? 1 + normalizedZoom * 1.6 : 0;
+        const depthBlur = focusInstrument ? 0.45 + normalizedZoom * 0.95 : 0;
 
         onCameraFrameRef.current?.({
           yawDeg,
@@ -359,7 +365,11 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         });
       }
 
-      composer.render();
+      if (cinematicIntensity > 0.01) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
       animationFrameId = window.requestAnimationFrame(animate);
     };
 
