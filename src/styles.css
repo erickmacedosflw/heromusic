@@ -846,6 +846,7 @@ input {
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
+  border-radius: 22px;
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center var(--stage-bg-focus-y);
@@ -872,6 +873,7 @@ input {
   transform-origin: top center;
   z-index: 0;
   pointer-events: none;
+  border-radius: inherit;
 }
 
 .stage-loop-fade {
@@ -885,6 +887,7 @@ input {
   opacity: 0;
   background: radial-gradient(circle at center, rgba(16, 16, 16, 0.06) 0%, rgba(7, 7, 7, 0.14) 100%);
   transition: opacity 180ms ease;
+  border-radius: inherit;
 }
 
 .stage-loop-fade.show {
@@ -898,7 +901,24 @@ input {
   right: 0;
   bottom: var(--stage-menu-space);
   z-index: 2;
-  background: transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center 28%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.07) 22%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.14) 56%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.stage-overlay::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 58%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(210, 224, 246, 0.16) 0%, rgba(176, 194, 220, 0.08) 36%, rgba(120, 136, 165, 0.03) 64%, rgba(0, 0, 0, 0) 100%);
+  filter: blur(0.6px);
 }
 
 .stage-scenery-floor {

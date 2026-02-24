@@ -76,6 +76,8 @@ type StageData = {
   Palco: string;
   Desc: string;
   Asset: string;
+  asset_horizontal?: string;
+  asset_parallax?: string;
   animated: string;
   Ingresso: number;
   Lotacao: number;
@@ -515,8 +517,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     () => resolveStageAsset(selectedStage?.Asset ?? ''),
     [selectedStage]
   );
+  const stage3DBackground = useMemo(
+    () => resolveStageAsset(selectedStage?.asset_parallax ?? selectedStage?.asset_horizontal ?? selectedStage?.Asset ?? ''),
+    [selectedStage]
+  );
   const stageAnimatedBackground = useMemo(
-    () => resolveStageAnimatedAsset(selectedStage?.animated ?? ''),
+    () => (selectedStage?.asset_parallax || selectedStage?.asset_horizontal
+      ? null
+      : resolveStageAnimatedAsset(selectedStage?.animated ?? '')),
     [selectedStage]
   );
 
@@ -1807,7 +1815,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <div className="stage-overlay" />
       <Stage3DScene
         textureUrl={defaultStageFloorTexture}
-        backgroundImageUrl={stageBackground}
+        backgroundImageUrl={stage3DBackground}
         backgroundVideoUrl={stageAnimatedBackground}
         isMusicPlaying={isMusicPlaying}
         activeMusicians={stage3DActiveMusicians}

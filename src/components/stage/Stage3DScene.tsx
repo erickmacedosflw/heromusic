@@ -26,10 +26,10 @@ const baseCameraPosition = new THREE.Vector3(0, 5.25, 14.45);
 const baseLookAtPosition = new THREE.Vector3(0, 0.76, 0.42);
 
 const performerPositions: Record<StagePerformerInstrument, THREE.Vector3> = {
-  drums: new THREE.Vector3(0.95, 0.9, -0.3),
-  guitar: new THREE.Vector3(-2.7, 1, 1.06),
+  drums: new THREE.Vector3(0.95, 0.9, -0.66),
+  guitar: new THREE.Vector3(-2.7, 1, 0.42),
   bass: new THREE.Vector3(2.7, 1, 1.06),
-  keys: new THREE.Vector3(-0.96, 1, 2.6),
+  keys: new THREE.Vector3(-0.72, 1, 2.6),
 };
 
 const performerSpriteScale: Record<StagePerformerInstrument, [number, number]> = {
@@ -58,27 +58,27 @@ type CameraShot = {
 const generalShot: CameraShot = {
   type: 'general',
   instrument: null,
-  pos: new THREE.Vector3(0, 4.95, 12.95),
-  look: new THREE.Vector3(0, 0.9, -0.08),
-  fov: 62,
+  pos: new THREE.Vector3(0, 5.2, 14.8),
+  look: new THREE.Vector3(0, 1.02, 0.06),
+  fov: 67,
   duration: 1.6,
 };
 
 const sweepShotLeft: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(-0.85, 3.45, 2.35),
-  look: new THREE.Vector3(-0.06, 1.14, 0.22),
-  fov: 52,
+  pos: new THREE.Vector3(-5.7, 4.65, 9.8),
+  look: new THREE.Vector3(0, 1.08, 0.12),
+  fov: 62,
   duration: 8,
 };
 
 const sweepShotRight: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(0.85, 3.45, 2.35),
-  look: new THREE.Vector3(0.06, 1.14, 0.22),
-  fov: 52,
+  pos: new THREE.Vector3(5.7, 4.65, 9.8),
+  look: new THREE.Vector3(0, 1.08, 0.12),
+  fov: 62,
   duration: 8,
 };
 
@@ -88,7 +88,7 @@ const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
     instrument: 'guitar',
     pos: new THREE.Vector3(-2.5, 2.7, 3.95),
     look: new THREE.Vector3(-2.6, 1.84, -0.2),
-    fov: 43,
+    fov: 50,
     duration: 5,
   },
   bass: {
@@ -96,7 +96,7 @@ const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
     instrument: 'bass',
     pos: new THREE.Vector3(2.5, 2.7, 3.95),
     look: new THREE.Vector3(2.6, 1.84, -0.2),
-    fov: 43,
+    fov: 50,
     duration: 5,
   },
   drums: {
@@ -104,7 +104,7 @@ const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
     instrument: 'drums',
     pos: new THREE.Vector3(0.9, 3.45, 3.08),
     look: new THREE.Vector3(0.95, 1.96, -0.9),
-    fov: 42,
+    fov: 49,
     duration: 5,
   },
   keys: {
@@ -112,7 +112,7 @@ const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
     instrument: 'keys',
     pos: new THREE.Vector3(-0.82, 2.45, 3.46),
     look: new THREE.Vector3(-0.96, 1.88, 1.74),
-    fov: 42,
+    fov: 49,
     duration: 5,
   },
 };
@@ -228,6 +228,10 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     backgroundPlane.position.set(0, 12.8, -44);
     backgroundPlane.renderOrder = -20;
     scene.add(backgroundPlane);
+    const backgroundBaseY = 7.3;
+    const backgroundParallaxCurrent = new THREE.Vector2(0, 0);
+    const backgroundParallaxTarget = new THREE.Vector2(0, 0);
+    const backgroundParallaxLimits = new THREE.Vector2(0, 0);
 
     const getBackgroundAspect = () => {
       const bgMap = backgroundMaterial.map;
@@ -252,18 +256,35 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     };
 
     const updateBackgroundPlaneScale = () => {
+      const fitScale = 4;
       const distance = Math.abs(camera.position.z - backgroundPlane.position.z);
       const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
       const frustumWidth = frustumHeight * camera.aspect;
 
       const textureAspect = getBackgroundAspect();
-      let planeWidth = frustumWidth * 1.04;
-      let planeHeight = planeWidth / textureAspect;
-      if (planeHeight < frustumHeight * 1.04) {
-        planeHeight = frustumHeight * 1.04;
-        planeWidth = planeHeight * textureAspect;
+      let planeHeight = frustumHeight * fitScale;
+      let planeWidth = planeHeight * textureAspect;
+      if (planeWidth > frustumWidth * fitScale) {
+        planeWidth = frustumWidth * fitScale;
+        planeHeight = planeWidth / textureAspect;
       }
 
+      const maxOffsetX = Math.max(0, (planeWidth - frustumWidth) * 0.5);
+      const maxOffsetY = Math.max(0, (planeHeight - frustumHeight) * 0.5);
+      backgroundParallaxLimits.set(maxOffsetX * 0.92, maxOffsetY * 0.92);
+      backgroundParallaxCurrent.x = THREE.MathUtils.clamp(
+        backgroundParallaxCurrent.x,
+        -backgroundParallaxLimits.x,
+        backgroundParallaxLimits.x
+      );
+      backgroundParallaxCurrent.y = THREE.MathUtils.clamp(
+        backgroundParallaxCurrent.y,
+        -backgroundParallaxLimits.y,
+        backgroundParallaxLimits.y
+      );
+
+      backgroundPlane.position.x = backgroundParallaxCurrent.x;
+      backgroundPlane.position.y = backgroundBaseY + backgroundParallaxCurrent.y;
       backgroundPlane.scale.set(planeWidth, planeHeight, 1);
     };
 
@@ -632,7 +653,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         : null;
 
       if (isCloseShot && focusAnchor) {
-        const shotDistanceToPortrait = Math.max(4.65, Math.min(5.9, shot.pos.distanceTo(focusAnchor)));
+        const shotDistanceToPortrait = Math.max(5.2, Math.min(6.7, shot.pos.distanceTo(focusAnchor)));
         const closeDistance = shotDistanceToPortrait;
         const shotDirection = new THREE.Vector3().subVectors(shot.pos, focusAnchor);
         if (shotDirection.lengthSq() < 0.0001) {
@@ -660,6 +681,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       targetPos.x += sideSway;
       targetPos.z += frontBackSway;
 
+      if (!playing) {
+        const idleSwayX = Math.sin(elapsed * 0.24) * 0.06 + Math.sin(elapsed * 0.11) * 0.03;
+        const idleSwayY = Math.cos(elapsed * 0.2) * 0.028;
+        const idleSwayZ = Math.sin(elapsed * 0.18) * 0.04;
+        targetPos.x += idleSwayX;
+        targetPos.y += idleSwayY;
+        targetPos.z += idleSwayZ;
+      }
+
       const targetLook = new THREE.Vector3(
         (focusAnchor ? focusAnchor.x : shot.look.x)
           + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.009 : 0.005)
@@ -671,6 +701,11 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         (focusAnchor ? focusAnchor.z : shot.look.z) + randomLookOffsetRef.current.z
       );
 
+      if (!playing) {
+        targetLook.x += Math.sin(elapsed * 0.24) * 0.012;
+        targetLook.y += Math.cos(elapsed * 0.2) * 0.009;
+      }
+
       targetLook.y += isCloseShot ? 0.16 : 0.28;
 
       cameraTarget.lerpVectors(fromShotPosRef.current, targetPos, easeProgress);
@@ -681,10 +716,32 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       camera.up.set(0, 1, 0);
       camera.lookAt(currentLookRef.current);
 
-      const targetFov = fromShotFovRef.current + (shot.fov - fromShotFovRef.current) * easeProgress;
+      const sweepZoomBreath = shot.type === 'sweep'
+        ? Math.sin(elapsed * 0.34) * 0.9
+        : 0;
+      const targetFov = fromShotFovRef.current + ((shot.fov + sweepZoomBreath) - fromShotFovRef.current) * easeProgress;
       currentFovRef.current += (targetFov - currentFovRef.current) * 0.12;
       camera.fov = currentFovRef.current;
       camera.updateProjectionMatrix();
+
+      backgroundParallaxTarget.set(
+        (camera.position.x - baseCameraPosition.x) * 0.2
+          + (currentLookRef.current.x - baseLookAtPosition.x) * 0.12,
+        (camera.position.y - baseCameraPosition.y) * 0.28
+          + (currentLookRef.current.y - baseLookAtPosition.y) * 0.08
+      );
+      backgroundParallaxTarget.x = THREE.MathUtils.clamp(
+        backgroundParallaxTarget.x,
+        -backgroundParallaxLimits.x,
+        backgroundParallaxLimits.x
+      );
+      backgroundParallaxTarget.y = THREE.MathUtils.clamp(
+        backgroundParallaxTarget.y,
+        -backgroundParallaxLimits.y,
+        backgroundParallaxLimits.y
+      );
+      backgroundParallaxCurrent.lerp(backgroundParallaxTarget, 0.045);
+      updateBackgroundPlaneScale();
 
       const focusDistance = Math.max(1.2, Math.min(16, camera.position.distanceTo(currentLookRef.current)));
       const closeStrengthRaw = isCloseShot ? 1 - (focusDistance - 2.3) / 5.8 : 0;
@@ -706,7 +763,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         });
       }
 
-      const allowBokeh = isCloseShot && closeStrength > 0.02 && !hasActiveVideoBackground;
+      const allowBokeh = false;
       if (allowBokeh) {
         composer.render();
       } else {
