@@ -39,6 +39,8 @@
       "Palco": "Bar Local",
       "Desc": "A banda começa a tocar em um bar local, ganhando seus primeiros fãs fora do círculo de amigos.",
       "Asset": "src/rsc/images/palcos/palco_bar.png",
+      "asset_horizontal": "src/rsc/images/palcos/palco_bar_horizontal.png",
+      "asset_parallax": "src/rsc/images/palcos/palco_bar_parallax.jpeg",
       "animated": "src/rsc/videos/palcos/palco_bar_video.mp4",
       "Ingresso": 10,
       "Lotacao": 600,
