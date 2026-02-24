@@ -91,10 +91,28 @@
   border: 2px solid rgba(255, 255, 255, 0.55);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.22);
-  text-align: center;
+  text-align: left;
   padding: 8px 10px;
   color: #ffffff;
   backdrop-filter: blur(3px);
+}
+
+.venue-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.venue-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.venue-badge-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 0;
+  object-fit: contain;
 }
 
 .venue-card h3 {
@@ -105,8 +123,9 @@
 
 .venue-meta {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .venue-meta span {

@@ -1146,6 +1146,10 @@ input {
   z-index: 3;
 }
 
+.stage-top-values {
+  z-index: 120;
+}
+
 .back-link {
   display: none;
 }

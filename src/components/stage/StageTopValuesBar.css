@@ -3,7 +3,7 @@
   display: grid;
   grid-template-columns: 38px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.7fr);
   gap: 7px;
-  z-index: 40 !important;
+  z-index: 220 !important;
 }
 
 .band-config-trigger {

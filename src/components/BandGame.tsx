@@ -11,6 +11,7 @@ import StageCenterPanel from './stage/StageCenterPanel';
 import StageCurrentSongBar from './stage/StageCurrentSongBar';
 import StageVisualEffectsLayer from './stage/StageVisualEffectsLayer';
 import Stage3DScene from './stage/Stage3DScene';
+import StageMapModal from './stage/StageMapModal';
 import useBandScreensState from '../hooks/useBandScreensState';
 import palcosData from '../locals/palcos.json';
 import musicsData from '../locals/musics.json';
@@ -44,6 +45,7 @@ const navHire = new URL('../rsc/images/icons/contratar.jpg', import.meta.url).hr
 const navStore = new URL('../rsc/images/icons/loja.jpg', import.meta.url).href;
 const navStage = new URL('../rsc/images/icons/palcos.jpg', import.meta.url).href;
 const navSongs = new URL('../rsc/images/icons/musicas.png', import.meta.url).href;
+const stageWorldMap = new URL('../rsc/images/maps/Mapa_Mundo.png', import.meta.url).href;
 const backgroundAudicao = new URL('../rsc/images/backgrounds/audicao.jpg', import.meta.url).href;
 const backgroundBackstage = new URL('../rsc/images/backgrounds/Backstage.jpg', import.meta.url).href;
 const portraitContratante = new URL('../rsc/images/facesets/velho_contratante_musicos.png', import.meta.url).href;
@@ -78,6 +80,7 @@ type StageData = {
   Asset: string;
   asset_horizontal?: string;
   asset_parallax?: string;
+  map_badge?: string;
   animated: string;
   Ingresso: number;
   Lotacao: number;
@@ -133,6 +136,11 @@ const stageImageAssetMap = import.meta.glob('../rsc/images/palcos/*.{png,jpg,jpe
   query: '?url',
   import: 'default',
 }) as Record<string, string>;
+const stageMapBadgeAssetMap = import.meta.glob('../rsc/images/maps/*.{png,jpg,jpeg,webp}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
 const stageVideoAssetMap = import.meta.glob('../rsc/videos/palcos/*.{mp4,webm}', {
   eager: true,
   query: '?url',
@@ -170,6 +178,28 @@ const resolveStageAnimatedAsset = (animatedPath: string) => {
 
   const viteAssetPath = `../${animatedPath.replace(/^src\//, '')}`;
   return stageVideoAssetMap[viteAssetPath] ?? null;
+};
+
+const resolveStageMapBadgeAsset = (badgePath: string) => {
+  if (!badgePath || !badgePath.startsWith('src/')) {
+    return navStage;
+  }
+
+  const viteAssetPath = `../${badgePath.replace(/^src\//, '')}`;
+  return stageMapBadgeAssetMap[viteAssetPath] ?? navStage;
+};
+
+const stageMapPositionById: Record<number, { x: number; y: number }> = {
+  1: { x: 94.3, y: 82.27 },
+  2: { x: 22.81, y: 48.59 },
+  3: { x: 82.42, y: 59.61 },
+  4: { x: 46.56, y: 37.89 },
+  5: { x: 40.55, y: 52.11 },
+  6: { x: 75.08, y: 67.19 },
+  7: { x: 50.63, y: 71.88 },
+  8: { x: 59.3, y: 25.47 },
+  9: { x: 90.63, y: 30.86 },
+  10: { x: 49.84, y: 8.28 },
 };
 
 const resolveMusicStreamAsset = (streamPath: string) => {
@@ -421,6 +451,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [rewardParticles, setRewardParticles] = useState<RewardParticle[]>([]);
   const [rewardTexts, setRewardTexts] = useState<RewardFloatText[]>([]);
   const [isLoopTransitioning, setIsLoopTransitioning] = useState(false);
+  const [isStageMapVisible, setIsStageMapVisible] = useState(false);
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
@@ -513,12 +544,30 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     []
   );
 
+  const stageMapEntries = useMemo(
+    () => stages.map((stage) => {
+      const position = stageMapPositionById[stage.IDPalco] ?? { x: 50, y: 50 };
+      return {
+        id: stage.IDPalco,
+        name: stage.Palco,
+        badgeUrl: resolveStageMapBadgeAsset(stage.map_badge ?? ''),
+        x: position.x,
+        y: position.y,
+      };
+    }),
+    []
+  );
+
   const stageBackground = useMemo(
     () => resolveStageAsset(selectedStage?.Asset ?? ''),
     [selectedStage]
   );
   const stage3DBackground = useMemo(
     () => resolveStageAsset(selectedStage?.asset_parallax ?? selectedStage?.asset_horizontal ?? selectedStage?.Asset ?? ''),
+    [selectedStage]
+  );
+  const selectedStageBadge = useMemo(
+    () => resolveStageMapBadgeAsset(selectedStage?.map_badge ?? ''),
     [selectedStage]
   );
   const stageAnimatedBackground = useMemo(
@@ -1135,13 +1184,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   };
 
   const handleCycleStage = () => {
-    if (selectableStages.length === 0) {
-      return;
+    if (selectableStages.length > 0) {
+      setIsStageMapVisible(true);
     }
-
-    const currentIndex = selectableStages.findIndex((stage) => stage.IDPalco === currentStageId);
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % selectableStages.length;
-    setCurrentStage(selectableStages[nextIndex].IDPalco);
   };
 
   const triggerLoopTransition = () => {
@@ -1245,6 +1290,31 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     fameProgressRef.current = 0;
     setFameProgressValue(0);
   }, [currentStageId, activeBandId]);
+
+  useEffect(() => {
+    pauseStageAudios();
+    getStageAudios().forEach((audio) => {
+      audio.seek(0);
+    });
+
+    setIsStageMapVisible(false);
+
+    stagePlayPendingRef.current = false;
+    stagePlaybackSecRef.current = 0;
+    soldOutHandledRef.current = false;
+    crowdDecayStepRef.current = 0;
+
+    rhythmStreakRef.current = 0;
+    rhythmBonusRef.current = 1;
+    lastPulseAtRef.current = 0;
+
+    setSongCurrentSec(0);
+    setRhythmMeter(0);
+    setRhythmBonus(1);
+    setIsMusicPlaying(false);
+    setMetronomeTick(false);
+    metronomeBeatIndexRef.current = -1;
+  }, [currentStageId]);
 
   useEffect(() => {
     moneyRewardHowlRef.current = new Howl({
@@ -1493,7 +1563,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   };
 
   const handlePointerPulse = (event: React.PointerEvent<HTMLElement>) => {
-    if (activeScreen !== 'band' || isBandManagementScreenVisible || isBandConfigVisible) {
+    if (activeScreen !== 'band' || isBandManagementScreenVisible || isBandConfigVisible || isStageMapVisible) {
       return;
     }
 
@@ -1814,6 +1884,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <div className={`stage-loop-fade${isLoopTransitioning ? ' show' : ''}`} aria-hidden="true" />
       <div className="stage-overlay" />
       <Stage3DScene
+        key={`stage3d-${currentStageId}`}
         textureUrl={defaultStageFloorTexture}
         backgroundImageUrl={stage3DBackground}
         backgroundVideoUrl={stageAnimatedBackground}
@@ -1987,6 +2058,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         bandFansValue={bandFansValue}
         bandPerformanceValue={bandPerformanceValue}
         selectedStageName={selectedStage?.Palco ?? 'Garagem de Casa'}
+        venueBadgeIcon={selectedStageBadge}
         stageTicketPrice={stageTicketPrice}
         lotacaoTotalValue={lotacaoTotalValue}
         costSharePct={costSharePct}
@@ -2019,6 +2091,17 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         currentSongName={currentSongName}
         wrapperRef={currentSongBarRef}
         fansTrackRef={fansGainTrackRef}
+      />
+
+      <StageMapModal
+        isVisible={isStageMapVisible}
+        mapImageUrl={stageWorldMap}
+        stages={stageMapEntries}
+        currentStageId={currentStageId}
+        onClose={() => setIsStageMapVisible(false)}
+        onSelectStage={(stageId) => {
+          setCurrentStage(stageId);
+        }}
       />
 
       {activeScreen !== 'musicians' && !isBandManagementScreenVisible ? (

@@ -13,6 +13,7 @@ type StageCenterPanelProps = {
   bandFansValue: number;
   bandPerformanceValue: number;
   selectedStageName: string;
+  venueBadgeIcon: string;
   stageTicketPrice: number;
   lotacaoTotalValue: number;
   costSharePct: number;
@@ -47,6 +48,7 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
   bandFansValue,
   bandPerformanceValue,
   selectedStageName,
+  venueBadgeIcon,
   stageTicketPrice,
   lotacaoTotalValue,
   costSharePct,
@@ -102,10 +104,15 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
       </div>
 
       <div className="venue-card">
-        <h3>{selectedStageName}</h3>
-        <div className="venue-meta">
-          <span><img src={iconIngresso} alt="Ingresso" className="venue-meta-icon" /> R$ {formatCurrency(stageTicketPrice)}</span>
-          <span><img src={iconValorCacheTotal} alt="Valor máximo de ganho" className="venue-meta-icon" /> R$ {formatCurrency(lotacaoTotalValue)}</span>
+        <div className="venue-layout">
+          <img src={venueBadgeIcon} alt="Badge do local" className="venue-badge-icon" />
+          <div className="venue-info">
+            <h3>{selectedStageName}</h3>
+            <div className="venue-meta">
+              <span><img src={iconIngresso} alt="Ingresso" className="venue-meta-icon" /> {formatCurrency(stageTicketPrice)}</span>
+              <span><img src={iconValorCacheTotal} alt="Valor total da lotação" className="venue-meta-icon" /> {formatCurrency(lotacaoTotalValue)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
