@@ -9,6 +9,7 @@ export const iconFameBlack = new URL('../rsc/images/icons/Fama_borda_preta.png',
 export const iconFansWhite = new URL('../rsc/images/icons/Fans_borda_branca.png', import.meta.url).href;
 export const iconFansBlack = new URL('../rsc/images/icons/Fans_Borda_Preta.png', import.meta.url).href;
 export const iconIngresso = new URL('../rsc/images/icons/Ingrresso.png', import.meta.url).href;
+export const iconIngressoBranco = new URL('../rsc/images/icons/Icone_ingresso_branco.png', import.meta.url).href;
 export const iconValorCacheTotal = new URL('../rsc/images/icons/valor_de_cache.png', import.meta.url).href;
 export const iconMusicWhite = new URL('../rsc/images/icons/musica_branco.png', import.meta.url).href;
 export const iconRhythmWhite = new URL('../rsc/images/icons/Ritmo_Borda_branca.png', import.meta.url).href;

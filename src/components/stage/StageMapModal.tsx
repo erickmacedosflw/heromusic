@@ -1,10 +1,16 @@
 import React from 'react';
 import './StageMapModal.css';
+import iconFechar from '../../rsc/images/icons/Icone_fechar.png';
 
 type StageMapEntry = {
   id: number;
   name: string;
   badgeUrl: string;
+  bannerUrl: string | null;
+  backgroundUrl: string | null;
+  ticketPrice: number;
+  capacity: number;
+  maxRevenue: number;
   x: number;
   y: number;
 };
@@ -12,6 +18,9 @@ type StageMapEntry = {
 type StageMapModalProps = {
   isVisible: boolean;
   mapImageUrl: string;
+  iconFansWhite: string;
+  iconIngressoWhite: string;
+  iconValorCacheTotal: string;
   stages: StageMapEntry[];
   currentStageId: number;
   isEmbedded?: boolean;
@@ -19,21 +28,27 @@ type StageMapModalProps = {
   bandName?: string;
   bandLogoUrl?: string;
   introPlayId?: number;
+  resetViewToken?: number;
   onIntroVisibilityChange?: (isVisible: boolean) => void;
+  onPreviewStageBannerChange?: (bannerUrl: string | null) => void;
   onStageTransitionStart?: () => void;
   onClose: () => void;
   onSelectStage: (stageId: number) => void;
 };
-const STAGE_SELECT_TRANSITION_MS = 3000;
+const STAGE_SELECT_TRANSITION_MS = 1800;
 const STAGE_MAP_CLOSE_FADE_MS = 620;
 const STAGE_BLACKOUT_START_PROGRESS = 0.68;
 const STAGE_SELECT_ZOOM_MULTIPLIER = 1.75;
 const STAGE_SELECT_FINAL_BLACK_HOLD_MS = 120;
+const STAGE_PREVIEW_EXIT_MS = 260;
 const TOUCH_SCROLL_DAMPING = 0.52;
 
 const StageMapModal: React.FC<StageMapModalProps> = ({
   isVisible,
   mapImageUrl,
+  iconFansWhite,
+  iconIngressoWhite,
+  iconValorCacheTotal,
   stages,
   currentStageId,
   isEmbedded = false,
@@ -41,7 +56,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   bandName,
   bandLogoUrl,
   introPlayId,
+  resetViewToken,
   onIntroVisibilityChange,
+  onPreviewStageBannerChange,
   onStageTransitionStart,
   onClose,
   onSelectStage,
@@ -60,6 +77,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   const [isClosing, setIsClosing] = React.useState(false);
   const [isStageTransitioning, setIsStageTransitioning] = React.useState(false);
   const [transitionOverlayOpacity, setTransitionOverlayOpacity] = React.useState(0);
+  const [previewStage, setPreviewStage] = React.useState<StageMapEntry | null>(null);
+  const [isPreviewClosing, setIsPreviewClosing] = React.useState(false);
+  const previewCloseTimeoutRef = React.useRef<number | null>(null);
   const transitionFrameRef = React.useRef<number | null>(null);
   const transitionTimeoutRef = React.useRef<number | null>(null);
   const introHoldTimeoutRef = React.useRef<number | null>(null);
@@ -89,6 +109,43 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   React.useEffect(() => {
     mapScaleRef.current = mapScale;
   }, [mapScale]);
+
+  React.useEffect(() => {
+    if (!isVisible) {
+      if (previewCloseTimeoutRef.current !== null) {
+        window.clearTimeout(previewCloseTimeoutRef.current);
+        previewCloseTimeoutRef.current = null;
+      }
+      setPreviewStage(null);
+      setIsPreviewClosing(false);
+    }
+  }, [isVisible]);
+
+  React.useEffect(() => {
+    onPreviewStageBannerChange?.(previewStage?.backgroundUrl ?? null);
+  }, [previewStage, onPreviewStageBannerChange]);
+
+  const closePreviewWithAnimation = React.useCallback(
+    (afterClose?: () => void) => {
+      if (!previewStage) {
+        return;
+      }
+
+      if (previewCloseTimeoutRef.current !== null) {
+        window.clearTimeout(previewCloseTimeoutRef.current);
+        previewCloseTimeoutRef.current = null;
+      }
+
+      setIsPreviewClosing(true);
+      previewCloseTimeoutRef.current = window.setTimeout(() => {
+        previewCloseTimeoutRef.current = null;
+        setPreviewStage(null);
+        setIsPreviewClosing(false);
+        afterClose?.();
+      }, STAGE_PREVIEW_EXIT_MS);
+    },
+    [previewStage]
+  );
 
   const minScale = React.useMemo(() => {
     if (imageSize.height <= 0 || imageSize.width <= 0 || !mapScrollRef.current) {
@@ -260,12 +317,42 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   }, [introPhase, onIntroVisibilityChange]);
 
   React.useEffect(() => {
+    if (!isVisible || imageSize.width <= 0 || imageSize.height <= 0 || !mapScrollRef.current) {
+      return;
+    }
+
+    hasInitializedOpenViewRef.current = false;
+
+    const scrollContainer = mapScrollRef.current;
+    const defaultScale = Math.max(minScale, Math.min(4, minScale * initialScaleMultiplier));
+    setMapScale(defaultScale);
+
+    const renderedWidth = imageSize.width * defaultScale;
+    const renderedHeight = imageSize.height * defaultScale;
+    const defaultLeft = Math.max(0, (renderedWidth - scrollContainer.clientWidth) / 2);
+    const defaultTop = Math.max(0, (renderedHeight - scrollContainer.clientHeight) / 2);
+    const clampedPosition = getClampedScrollPosition(scrollContainer, defaultLeft, defaultTop, defaultScale);
+
+    scrollContainer.scrollTo({
+      left: clampedPosition.left,
+      top: clampedPosition.top,
+      behavior: 'auto',
+    });
+    touchPanLastPointRef.current = null;
+    pinchStartDistanceRef.current = null;
+    pinchStartScaleRef.current = defaultScale;
+  }, [resetViewToken, isVisible, imageSize, minScale, getClampedScrollPosition]);
+
+  React.useEffect(() => {
     return () => {
       if (transitionFrameRef.current !== null) {
         window.cancelAnimationFrame(transitionFrameRef.current);
       }
       if (transitionTimeoutRef.current !== null) {
         window.clearTimeout(transitionTimeoutRef.current);
+      }
+      if (previewCloseTimeoutRef.current !== null) {
+        window.clearTimeout(previewCloseTimeoutRef.current);
       }
       if (introHoldTimeoutRef.current !== null) {
         window.clearTimeout(introHoldTimeoutRef.current);
@@ -338,6 +425,16 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
 
   };
 
+  const handleCloseModal = React.useCallback(() => {
+    if (previewCloseTimeoutRef.current !== null) {
+      window.clearTimeout(previewCloseTimeoutRef.current);
+      previewCloseTimeoutRef.current = null;
+    }
+    setPreviewStage(null);
+    setIsPreviewClosing(false);
+    onClose();
+  }, [onClose]);
+
   const handleSelectStageWithTransition = (stage: StageMapEntry) => {
     if (isStageTransitioning) {
       return;
@@ -346,10 +443,14 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     const scrollContainer = mapScrollRef.current;
     if (!scrollContainer || imageSize.width <= 0 || imageSize.height <= 0) {
       onStageTransitionStart?.();
+      setIsPreviewClosing(false);
+      setPreviewStage(null);
       onSelectStage(stage.id);
       if (!isEmbedded) {
         onClose();
       }
+      setIsStageTransitioning(false);
+      setTransitionOverlayOpacity(0);
       return;
     }
 
@@ -408,10 +509,14 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
       transitionFrameRef.current = null;
       setTransitionOverlayOpacity(1);
       transitionTimeoutRef.current = window.setTimeout(() => {
+        setPreviewStage(null);
+        setIsPreviewClosing(false);
         onSelectStage(stage.id);
         if (!isEmbedded) {
           onClose();
         }
+        setIsStageTransitioning(false);
+        setTransitionOverlayOpacity(0);
       }, STAGE_SELECT_FINAL_BLACK_HOLD_MS);
     };
 
@@ -436,7 +541,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
       aria-label="Mapa da cidade"
     >
       {!isEmbedded ? (
-        <button type="button" className="stage-map-backdrop" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning} />
+        <button type="button" className="stage-map-backdrop" onClick={handleCloseModal} aria-label="Fechar mapa" disabled={isStageTransitioning} />
       ) : null}
       <div className="stage-map-card">
         {introPhase !== 'hidden' && introImageUrl ? (
@@ -449,7 +554,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
           </div>
         ) : null}
         {!isEmbedded ? (
-          <button type="button" className="stage-map-close" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning}>
+          <button type="button" className="stage-map-close" onClick={handleCloseModal} aria-label="Fechar mapa" disabled={isStageTransitioning}>
             Fechar mapa
           </button>
         ) : null}
@@ -495,7 +600,12 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
                 style={{ left: `${marker.renderX}px`, top: `${marker.renderY}px` }}
                 onClick={(event) => {
                   event.stopPropagation();
-                  handleSelectStageWithTransition(marker);
+                  if (previewCloseTimeoutRef.current !== null) {
+                    window.clearTimeout(previewCloseTimeoutRef.current);
+                    previewCloseTimeoutRef.current = null;
+                  }
+                  setIsPreviewClosing(false);
+                  setPreviewStage(marker);
                 }}
                 title={marker.name}
                 aria-label={`Ir para ${marker.name}`}
@@ -508,6 +618,79 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
           })}
           </div>
         </div>
+        {previewStage && !isStageTransitioning ? (
+          <div className={`stage-map-preview${isStageTransitioning ? ' is-transitioning' : ''}${isPreviewClosing ? ' is-closing' : ''}`}>
+            <div
+              className="stage-map-preview-card"
+              style={(previewStage.backgroundUrl ?? previewStage.bannerUrl)
+                ? { backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.35) 60%), url(${previewStage.backgroundUrl ?? previewStage.bannerUrl})` }
+                : undefined}
+            >
+              <div className="stage-map-preview-top">
+                <div className="stage-map-preview-identity">
+                  {previewStage.badgeUrl ? (
+                    <div className="stage-map-preview-badge" aria-hidden="true">
+                      <img src={previewStage.badgeUrl} alt="" />
+                    </div>
+                  ) : null}
+                  <div className="stage-map-preview-title">
+                    <span>{previewStage.name}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="stage-map-preview-close"
+                  onClick={() => closePreviewWithAnimation()}
+                  aria-label="Fechar"
+                  disabled={isStageTransitioning}
+                >
+                  <img src={iconFechar} alt="" aria-hidden="true" className="stage-map-preview-close-icon" />
+                </button>
+              </div>
+
+              <div className="stage-map-preview-stats">
+                <div className="stage-map-preview-stat">
+                  <img src={iconFansWhite} alt="Público" className="stage-map-preview-stat-icon" />
+                  <div>
+                    <span>Lotação</span>
+                    <strong>{previewStage.capacity.toLocaleString('pt-BR')}</strong>
+                  </div>
+                </div>
+                <div className="stage-map-preview-stat">
+                  <img src={iconIngressoWhite} alt="Ingresso" className="stage-map-preview-stat-icon" />
+                  <div>
+                    <span>Ingresso</span>
+                    <strong>R$ {previewStage.ticketPrice.toLocaleString('pt-BR')}</strong>
+                  </div>
+                </div>
+                <div className="stage-map-preview-stat">
+                  <img src={iconValorCacheTotal} alt="Receita" className="stage-map-preview-stat-icon" />
+                  <div>
+                    <span>Receita máx.</span>
+                    <strong>R$ {previewStage.maxRevenue.toLocaleString('pt-BR')}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="stage-map-preview-actions">
+                <button
+                  type="button"
+                  className="stage-map-preview-go"
+                  onClick={() => {
+                    if (!previewStage || isStageTransitioning) return;
+                    const stageToGo = previewStage;
+                    closePreviewWithAnimation(() => handleSelectStageWithTransition(stageToGo));
+                  }}
+                  disabled={isStageTransitioning}
+                  aria-label={`Ir para ${previewStage.name}`}
+                  data-click-sfx="confirm"
+                >
+                  Ir para o palco
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         </div>
     </aside>
   );

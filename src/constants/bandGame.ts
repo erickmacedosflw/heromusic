@@ -36,7 +36,7 @@ export const AMBIENCE_FADE_OUT_MS = 520;
 export const STAGE_STEM_FADE_IN_MS = 700;
 export const STAGE_STEM_FADE_OUT_MS = 420;
 export const MAP_AMBIENCE_VOLUME = 0.04;
-export const STAGE_AMBIENCE_VOLUME = 1.50;
+export const STAGE_AMBIENCE_VOLUME = 1.70;
 
 export const instrumentById: Record<number, Instrument> = {
   1: 'guitar',

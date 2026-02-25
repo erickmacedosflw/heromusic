@@ -214,7 +214,10 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
   }
 
   return (
-    <div className={`band-management-screen${isClosing ? ' closing' : ''}`} style={{ backgroundImage: `url(${backgroundBackstage})` }}>
+    <div
+      className={`band-management-screen${isClosing ? ' closing' : ''}`}
+      style={{ backgroundImage: `url(${backgroundBackstage})` }}
+    >
       <div className={`band-management-content${isSelectorDetailOpen ? ' detail-open' : ''}`}>
         <div className="band-management-top-hero">
           <div className="musicians-contract-overlay" />
@@ -275,6 +278,7 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
               formatNumber={formatNumber}
               formatPerformancePercent={formatPerformancePercent}
               instrumentNameById={instrumentNameById}
+              hideCloseButton
               displayMode="hero-stage"
               showStoryToggle={false}
               customAction={selectedSelectorMusicianId === selectedSelectorDetail.id

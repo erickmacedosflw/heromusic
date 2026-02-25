@@ -16,6 +16,7 @@ import useBandScreensState from '../hooks/useBandScreensState';
 import { playUiClickSound } from '../utils/clickAudio';
 import { pauseThemeMusic, playThemeMusic } from '../utils/themeAudio';
 import { useBandGameComputed } from '../hooks/useBandGameComputed';
+import { resolveStageAsset, resolveStageMapBadgeAsset } from '../utils/assetResolvers';
 import {
   AMBIENCE_FADE_IN_MS,
   AMBIENCE_FADE_OUT_MS,
@@ -70,6 +71,7 @@ import {
   iconFansWhite,
   iconFechar,
   iconIngresso,
+  iconIngressoBranco,
   iconMoneyBlack,
   iconMoneyWhite,
   iconMusicWhite,
@@ -227,6 +229,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [mapIntroPlayId, setMapIntroPlayId] = useState(0);
   const [mapUiRevealId, setMapUiRevealId] = useState(0);
   const [isMapIntroVisible, setIsMapIntroVisible] = useState(false);
+  const [mapPreviewBannerUrl, setMapPreviewBannerUrl] = useState<string | null>(null);
   const [mapReturnTransitionPhase, setMapReturnTransitionPhase] = useState<'idle' | 'to-black' | 'from-black'>('idle');
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
@@ -276,6 +279,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   });
 
   const {
+    stages,
     selectedMusic,
     activeBand,
     activeBandMusicians,
@@ -328,6 +332,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const isBandManagementScreenVisible = isBandManagementOpen || isClosingBandManagement;
   const isBandConfigVisible = isBandConfigOpen || isClosingBandConfig;
   const activeBandInstrumentsKey = activeBandInstruments.join('|');
+  const bandManagementBackgroundImage = !isStageShowActive && mapPreviewBannerUrl ? mapPreviewBannerUrl : backgroundBackstage;
 
   useEffect(() => {
     const shouldPlayMapTheme = isMusicEnabled && !isStageShowActive && mapReturnTransitionPhase !== 'to-black';
@@ -1639,7 +1644,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <BandManagementScreen
         isVisible={isBandManagementScreenVisible}
         isClosing={isClosingBandManagement}
-        backgroundBackstage={backgroundBackstage}
+        backgroundBackstage={bandManagementBackgroundImage}
         iconFechar={iconFechar}
         iconBloqueado={iconBloqueado}
         iconDisponivel={iconDisponivel}
@@ -1793,35 +1798,24 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <StageMapModal
         isVisible={!isStageShowActive}
         mapImageUrl={stageWorldMap}
+        iconFansWhite={iconFansWhite}
+        iconIngressoWhite={iconIngressoBranco}
+        iconValorCacheTotal={iconCache}
         introImageUrl={stageWorldPreview}
         bandName={activeBand.name}
         bandLogoUrl={activeBand.logoUrl}
         introPlayId={mapIntroPlayId}
         onIntroVisibilityChange={setIsMapIntroVisible}
+        onPreviewStageBannerChange={setMapPreviewBannerUrl}
         stages={stageMapEntries}
         currentStageId={currentStageId}
         isEmbedded
-        onStageTransitionStart={() => {
-            // Trigger menu hide animation, keep it rendered long enough for the exit transition
-            if (sideMenuHideTimeoutRef.current !== null) {
-              window.clearTimeout(sideMenuHideTimeoutRef.current);
-            }
-            setShouldRenderSideMenu(true);
-            setIsSideMenuHiding(true);
-            sideMenuHideTimeoutRef.current = window.setTimeout(() => {
-              setShouldRenderSideMenu(false);
-              setIsSideMenuHiding(false);
-              sideMenuHideTimeoutRef.current = null;
-            }, 520);
-        }}
         onClose={() => undefined}
         onSelectStage={(stageId) => {
           setCurrentStage(stageId);
           setIsStageShowActive(true);
-            // Menu stays hidden until returning to map after show ends
         }}
       />
-
       {shouldRenderSideMenu && (!isStageShowActive || isSideMenuHiding) && activeScreen !== 'musicians' && !isBandManagementScreenVisible && (
         <StageBottomNav
           key={`nav-${mapUiRevealId}`}

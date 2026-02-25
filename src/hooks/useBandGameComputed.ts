@@ -84,6 +84,11 @@ export const useBandGameComputed = ({
         id: stage.IDPalco,
         name: stage.Palco,
         badgeUrl: resolveStageMapBadgeAsset(stage.map_badge ?? ''),
+        bannerUrl: resolveStageAsset(stage.asset_horizontal ?? stage.Asset ?? ''),
+        backgroundUrl: resolveStageAsset(stage.Asset ?? stage.asset_horizontal ?? ''),
+        ticketPrice: Math.max(0, stage.Ingresso),
+        capacity: Math.max(0, stage.Lotacao),
+        maxRevenue: Math.max(0, stage.Ingresso * stage.Lotacao),
         x: position.x,
         y: position.y,
       };

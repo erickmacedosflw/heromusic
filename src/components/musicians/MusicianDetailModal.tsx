@@ -45,6 +45,7 @@ type MusicianDetailModalProps = {
   formatPerformancePercent: (value: number) => string;
   instrumentNameById: Record<number, string>;
   showStoryToggle?: boolean;
+  hideCloseButton?: boolean;
   customAction?: {
     label: string;
     onClick: () => void;
@@ -82,6 +83,7 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
   formatPerformancePercent,
   instrumentNameById,
   showStoryToggle = true,
+  hideCloseButton = false,
   customAction,
   onCloseDetails,
   onToggleStory,
@@ -142,21 +144,24 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
     <article
       className={`musician-detail-card${selectedMusicianRarityClass ? ` rarity-${selectedMusicianRarityClass}` : ''}${isClosing ? ' closing' : ' show'}${isStoryOpen ? ' story-open' : ''}${displayMode === 'hero-stage' ? ' hero-stage' : ''}${customAction ? ' has-custom-action' : ''}`}
     >
-      <button
-        type="button"
-        className="musician-detail-close"
-        onClick={onCloseDetails}
-        data-click-sfx="close"
-        aria-label="Fechar detalhes do músico"
-      >
-        <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
-      </button>
+      {!hideCloseButton ? (
+        <button
+          type="button"
+          className="musician-detail-close"
+          onClick={onCloseDetails}
+          data-click-sfx="close"
+          aria-label="Fechar detalhes do músico"
+        >
+          <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
+        </button>
+      ) : null}
+
       {showStoryToggle ? (
         <button
           type="button"
           className="musician-detail-info-btn"
           onClick={onToggleStory}
-          data-click-sfx-ignore="true"
+          data-click-sfx="open"
           aria-label="Mostrar detalhes da história do músico"
         >
           <span className="musician-info-icon" aria-hidden="true">i</span>
