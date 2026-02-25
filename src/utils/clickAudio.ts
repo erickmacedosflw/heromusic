@@ -1,10 +1,12 @@
 import { Howl, Howler } from 'howler';
 import { useGameStore } from '../state/gameStore';
 
-type ClickSoundType = 'open' | 'close' | 'default';
+type ClickSoundType = 'open' | 'close' | 'default' | 'confirm' | 'cancel';
 
 const clickInSrc = new URL('../rsc/audios/Clique_in.mp3', import.meta.url).href;
 const clickOutSrc = new URL('../rsc/audios/Clique_Out.mp3', import.meta.url).href;
+const clickConfirmSrc = new URL('../rsc/audios/Clique_confirm.mp3', import.meta.url).href;
+const clickCancelSrc = new URL('../rsc/audios/Clique_cancelar.mp3', import.meta.url).href;
 
 const interactiveSelector = [
   'button',
@@ -19,6 +21,14 @@ const interactiveSelector = [
 ].join(',');
 
 const getClickType = (value?: string): ClickSoundType => {
+  if (value === 'confirm') {
+    return 'confirm';
+  }
+
+  if (value === 'cancel') {
+    return 'cancel';
+  }
+
   if (value === 'close') {
     return 'close';
   }
@@ -40,6 +50,22 @@ const clickInHowl = new Howl({
 
 const clickOutHowl = new Howl({
   src: [clickOutSrc],
+  preload: true,
+  volume: 1,
+  html5: false,
+  pool: 1,
+});
+
+const clickConfirmHowl = new Howl({
+  src: [clickConfirmSrc],
+  preload: true,
+  volume: 1,
+  html5: false,
+  pool: 1,
+});
+
+const clickCancelHowl = new Howl({
+  src: [clickCancelSrc],
   preload: true,
   volume: 1,
   html5: false,
@@ -81,7 +107,13 @@ export const playUiClickSound = (type: ClickSoundType = 'default') => {
   const playNow = () => {
     stopCurrentClick();
 
-    const howl = type === 'close' ? clickOutHowl : clickInHowl;
+    const howl = type === 'close'
+      ? clickOutHowl
+      : type === 'confirm'
+        ? clickConfirmHowl
+        : type === 'cancel'
+          ? clickCancelHowl
+          : clickInHowl;
     const nextId = howl.play();
 
     if (typeof nextId === 'number') {

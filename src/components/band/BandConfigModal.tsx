@@ -90,18 +90,6 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
             <input type="checkbox" checked={isMusicEnabled} onChange={(event) => onToggleMusic(event.target.checked)} />
             <span>Música</span>
           </label>
-          <div className="band-config-audio-title">
-            <img src={iconCamera} alt="" aria-hidden="true" />
-            <span>Câmera</span>
-          </div>
-          <label className="band-config-option">
-            <input
-              type="checkbox"
-              checked={isCameraMotionEnabled}
-              onChange={(event) => onToggleCameraMotion(event.target.checked)}
-            />
-            <span>Movimento de câmera</span>
-          </label>
           <div className="band-config-instrument-volumes">
             {instrumentVolumeControls.map((control) => {
               const sliderValue = Math.round(Math.max(0, Math.min(1, control.value)) * 100);
@@ -125,6 +113,18 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
               );
             })}
           </div>
+          <div className="band-config-audio-title">
+            <img src={iconCamera} alt="" aria-hidden="true" />
+            <span>Câmera</span>
+          </div>
+          <label className="band-config-option">
+            <input
+              type="checkbox"
+              checked={isCameraMotionEnabled}
+              onChange={(event) => onToggleCameraMotion(event.target.checked)}
+            />
+            <span>Movimento de câmera</span>
+          </label>
           <button
             type="button"
             className="band-config-exit"

@@ -227,6 +227,7 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
                   type="button"
                   className={`musician-hero-hire-btn${customAction.variant === 'remove' ? ' is-remove' : ' is-select'}`}
                   disabled={customAction.disabled}
+                  data-click-sfx={customAction.variant === 'remove' ? 'cancel' : 'confirm'}
                   onClick={customAction.onClick}
                 >
                   <span>{customAction.label}</span>
@@ -323,6 +324,7 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
           type="button"
           className={`musician-detail-hire-btn${customAction.variant === 'remove' ? ' is-remove' : ' is-select'}`}
           disabled={customAction.disabled}
+          data-click-sfx={customAction.variant === 'remove' ? 'cancel' : 'confirm'}
           onClick={customAction.onClick}
         >
           <span>{customAction.label}</span>

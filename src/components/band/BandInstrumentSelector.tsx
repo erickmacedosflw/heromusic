@@ -168,6 +168,7 @@ const BandInstrumentSelector: React.FC<BandInstrumentSelectorProps> = ({
               <button
                 type="button"
                 className={`band-selector-item empty${selectedMusicianId === null ? ' selected' : ''}`}
+                data-click-sfx="cancel"
                 onClick={() => runSelectorCloseAnimation(() => onSelectEmpty(activeInstrument))}
               >
                 <div className="band-selector-face-empty">
