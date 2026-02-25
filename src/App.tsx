@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import BootScene from './game/scenes/BootScene';
-import BandHub from './components/BandHub';
-import BandGame from './components/BandGame';
 import useGameLoop from './hooks/useGameLoop';
 import { useGameStore } from './state/gameStore';
 import { setupGlobalUiClickSound } from './utils/clickAudio';
 import { disposeThemeMusic, pauseThemeMusic, playThemeMusic, setupThemeMusicUnlock } from './utils/themeAudio';
+
+const BandHub = React.lazy(() => import('./components/BandHub'));
+const BandGame = React.lazy(() => import('./components/BandGame'));
 
 const App: React.FC = () => {
     const [currentScene, setCurrentScene] = useState<'boot' | 'menu' | 'game'>('boot');
@@ -169,7 +170,9 @@ const App: React.FC = () => {
 
     return (
         <div className="game-container">
-            {renderScene()}
+            <React.Suspense fallback={<div className="boot-scene">Loading assets...</div>}>
+                {renderScene()}
+            </React.Suspense>
         </div>
     );
 };

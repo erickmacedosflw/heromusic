@@ -111,6 +111,42 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    chunkSizeWarningLimit: 550,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return;
+          }
+
+          if (id.includes('/three/examples/')) {
+            return 'vendor-three-extras';
+          }
+
+          if (id.includes('/three/')) {
+            return 'vendor-three-core';
+          }
+
+          if (id.includes('/framer-motion/')) {
+            return 'vendor-motion';
+          }
+
+          if (id.includes('/react-icons/')) {
+            return 'vendor-icons';
+          }
+
+          if (id.includes('/howler/')) {
+            return 'vendor-audio';
+          }
+
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+            return 'vendor-react';
+          }
+
+          return 'vendor';
+        },
+      },
+    },
   },
   resolve: {
     alias: {
