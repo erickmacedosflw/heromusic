@@ -6,6 +6,7 @@ type StageBottomNavProps = {
   isHiding?: boolean;
   isBandManagementScreenVisible: boolean;
   availableToHireCount: number;
+  className?: string;
   navBand: string;
   navHire: string;
   navStore: string;
@@ -21,6 +22,7 @@ const StageBottomNav: React.FC<StageBottomNavProps> = ({
   isHiding = false,
   isBandManagementScreenVisible,
   availableToHireCount,
+  className = '',
   navBand,
   navHire,
   navStore,
@@ -30,8 +32,10 @@ const StageBottomNav: React.FC<StageBottomNavProps> = ({
   onOpenMusiciansScreen,
   onCycleStage,
 }) => {
+  const resolvedClassName = !isHiding && className ? ` ${className}` : '';
+
   return (
-    <div className={`game-bottom-nav${variant === 'side' ? ' game-side-nav' : ''}${isHiding ? ' is-hiding' : ''}`}>
+    <div className={`game-bottom-nav${variant === 'side' ? ' game-side-nav' : ''}${isHiding ? ' is-hiding' : ''}${resolvedClassName}`}>
       <button
         type="button"
         className={`bottom-item${isBandManagementScreenVisible ? ' active' : ''}`}

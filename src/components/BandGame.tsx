@@ -46,6 +46,7 @@ const navStore = new URL('../rsc/images/icons/loja.jpg', import.meta.url).href;
 const navStage = new URL('../rsc/images/icons/palcos.jpg', import.meta.url).href;
 const navSongs = new URL('../rsc/images/icons/musicas.png', import.meta.url).href;
 const stageWorldMap = new URL('../rsc/images/maps/Mapa_Mundo.jpeg', import.meta.url).href;
+const stageWorldPreview = new URL('../rsc/images/maps/Preview_cidade.png', import.meta.url).href;
 const backgroundAudicao = new URL('../rsc/images/backgrounds/audicao.jpg', import.meta.url).href;
 const backgroundBackstage = new URL('../rsc/images/backgrounds/Backstage.jpg', import.meta.url).href;
 const portraitContratante = new URL('../rsc/images/facesets/velho_contratante_musicos.png', import.meta.url).href;
@@ -58,7 +59,8 @@ const iconBandaMenu = new URL('../rsc/images/icons/Icone_Banda.png', import.meta
 const iconEspeciaisMenu = new URL('../rsc/images/icons/Icone_Especiais.png', import.meta.url).href;
 const iconAnaliseMenu = new URL('../rsc/images/icons/icone_Analise.png', import.meta.url).href;
 const iconFechar = new URL('../rsc/images/icons/Icone_fechar.png', import.meta.url).href;
-const iconConfig = new URL('../rsc/images/icons/Icone_config_branco.png', import.meta.url).href;
+const iconConfigBlack = new URL('../rsc/images/icons/Icone_config_preto.png', import.meta.url).href;
+const iconConfigWhite = new URL('../rsc/images/icons/Icone_config_branco.png', import.meta.url).href;
 const iconExitBand = new URL('../rsc/images/icons/Icone_Sair.png', import.meta.url).href;
 const iconBloqueado = new URL('../rsc/images/icons/Icone_bloquado.png', import.meta.url).href;
 const iconDisponivel = new URL('../rsc/images/icons/icone_disponivel.png', import.meta.url).href;
@@ -465,10 +467,18 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [isLoopTransitioning, setIsLoopTransitioning] = useState(false);
   const [isStageShowActive, setIsStageShowActive] = useState(false);
   const [isSideMenuHiding, setIsSideMenuHiding] = useState(false);
+  const [shouldRenderSideMenu, setShouldRenderSideMenu] = useState(true);
+  const [mapIntroPlayId, setMapIntroPlayId] = useState(0);
+  const [mapUiRevealId, setMapUiRevealId] = useState(0);
+  const [isMapIntroVisible, setIsMapIntroVisible] = useState(false);
   const [mapReturnTransitionPhase, setMapReturnTransitionPhase] = useState<'idle' | 'to-black' | 'from-black'>('idle');
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
+  const prevActiveScreenRef = useRef<'band' | 'musicians'>('band');
+  const prevActiveBandIdRef = useRef<string | null>(null);
+  const prevIntroVisibleRef = useRef(false);
+  const sideMenuHideTimeoutRef = useRef<number | null>(null);
   const moneyRewardHowlRef = useRef<Howl | null>(null);
   const applauseHowlRef = useRef<Howl | null>(null);
   const purchaseHowlRef = useRef<Howl | null>(null);
@@ -1454,6 +1464,49 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [currentStageId, activeBandId]);
 
   useEffect(() => {
+    if (!isStageShowActive) {
+      if (sideMenuHideTimeoutRef.current !== null) {
+        window.clearTimeout(sideMenuHideTimeoutRef.current);
+        sideMenuHideTimeoutRef.current = null;
+      }
+      setIsSideMenuHiding(false);
+      setShouldRenderSideMenu(true);
+    }
+  }, [isStageShowActive]);
+
+  useEffect(() => {
+    if (prevIntroVisibleRef.current && !isMapIntroVisible) {
+      setMapUiRevealId((value) => value + 1);
+    }
+
+    prevIntroVisibleRef.current = isMapIntroVisible;
+  }, [isMapIntroVisible]);
+
+  useEffect(() => {
+    if (!isStageShowActive && activeScreen === 'band' && prevActiveScreenRef.current !== 'band') {
+      setMapIntroPlayId((value) => value + 1);
+    }
+
+    prevActiveScreenRef.current = activeScreen;
+  }, [activeScreen, isStageShowActive]);
+
+  useEffect(() => {
+    if (!activeBandId) {
+      prevActiveBandIdRef.current = null;
+      return;
+    }
+
+    const isFirstBand = prevActiveBandIdRef.current === null;
+    const hasBandChanged = prevActiveBandIdRef.current !== null && prevActiveBandIdRef.current !== activeBandId;
+
+    if (!isStageShowActive && (isFirstBand || hasBandChanged)) {
+      setMapIntroPlayId((value) => value + 1);
+    }
+
+    prevActiveBandIdRef.current = activeBandId;
+  }, [activeBandId, isStageShowActive]);
+
+  useEffect(() => {
     mapAmbienceHowlRef.current = new Howl({
       src: [ambienceMapAudio],
       preload: true,
@@ -1473,6 +1526,11 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     return () => {
       clearAmbienceFadeTimeout(mapAmbienceFadeTimeoutRef);
       clearAmbienceFadeTimeout(stageAmbienceFadeTimeoutRef);
+
+      if (sideMenuHideTimeoutRef.current !== null) {
+        window.clearTimeout(sideMenuHideTimeoutRef.current);
+        sideMenuHideTimeoutRef.current = null;
+      }
 
       mapAmbienceHowlRef.current?.stop();
       mapAmbienceHowlRef.current?.unload();
@@ -2217,7 +2275,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       />
 
       <StageTopValuesBar
-        bandLogoUrl={activeBand.logoUrl}
+        key={`top-${mapUiRevealId}`}
+        configIcon={iconConfigBlack}
+        isConfigOpen={isBandConfigOpen}
         availableBandCoins={availableBandCoins}
         fans={activeBand.fans}
         fameStars={Math.max(0, Math.floor(activeBand.fameStars ?? 0))}
@@ -2231,6 +2291,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         topMoneyRef={topMoneyRef}
         topFansRef={topFansRef}
         topFameRef={topFameRef}
+        className="map-ui-reveal"
       />
 
       <BandConfigModal
@@ -2240,7 +2301,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         bandLogoUrl={activeBand.logoUrl}
         isSfxEnabled={isSfxEnabled}
         isMusicEnabled={isMusicEnabled}
-        iconConfig={iconConfig}
+        iconConfig={iconConfigWhite}
         iconFechar={iconFechar}
         iconAudioOn={iconAudioOn}
         iconExitBand={iconExitBand}
@@ -2326,12 +2387,26 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       <StageMapModal
         isVisible={!isStageShowActive}
         mapImageUrl={stageWorldMap}
+        introImageUrl={stageWorldPreview}
+        bandName={activeBand.name}
+        bandLogoUrl={activeBand.logoUrl}
+        introPlayId={mapIntroPlayId}
+        onIntroVisibilityChange={setIsMapIntroVisible}
         stages={stageMapEntries}
         currentStageId={currentStageId}
         isEmbedded
         onStageTransitionStart={() => {
-            // Trigger menu hide animation, keep menu hidden for duration of map zoom (STAGE_SELECT_TRANSITION_MS)
+            // Trigger menu hide animation, keep it rendered long enough for the exit transition
+            if (sideMenuHideTimeoutRef.current !== null) {
+              window.clearTimeout(sideMenuHideTimeoutRef.current);
+            }
+            setShouldRenderSideMenu(true);
             setIsSideMenuHiding(true);
+            sideMenuHideTimeoutRef.current = window.setTimeout(() => {
+              setShouldRenderSideMenu(false);
+              setIsSideMenuHiding(false);
+              sideMenuHideTimeoutRef.current = null;
+            }, 520);
         }}
         onClose={() => undefined}
         onSelectStage={(stageId) => {
@@ -2341,11 +2416,13 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         }}
       />
 
-      {!isStageShowActive && activeScreen !== 'musicians' && !isBandManagementScreenVisible && (
+      {shouldRenderSideMenu && (!isStageShowActive || isSideMenuHiding) && activeScreen !== 'musicians' && !isBandManagementScreenVisible && (
         <StageBottomNav
+          key={`nav-${mapUiRevealId}`}
           variant="side"
           isHiding={isSideMenuHiding}
           isBandManagementScreenVisible={isBandManagementScreenVisible}
+          className="map-ui-reveal"
           availableToHireCount={availableToHireCount}
           navBand={navBand}
           navHire={navHire}

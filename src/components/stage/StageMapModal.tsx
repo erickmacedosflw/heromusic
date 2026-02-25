@@ -15,6 +15,11 @@ type StageMapModalProps = {
   stages: StageMapEntry[];
   currentStageId: number;
   isEmbedded?: boolean;
+  introImageUrl?: string;
+  bandName?: string;
+  bandLogoUrl?: string;
+  introPlayId?: number;
+  onIntroVisibilityChange?: (isVisible: boolean) => void;
   onStageTransitionStart?: () => void;
   onClose: () => void;
   onSelectStage: (stageId: number) => void;
@@ -32,6 +37,11 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   stages,
   currentStageId,
   isEmbedded = false,
+  introImageUrl,
+  bandName,
+  bandLogoUrl,
+  introPlayId,
+  onIntroVisibilityChange,
   onStageTransitionStart,
   onClose,
   onSelectStage,
@@ -52,6 +62,10 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   const [transitionOverlayOpacity, setTransitionOverlayOpacity] = React.useState(0);
   const transitionFrameRef = React.useRef<number | null>(null);
   const transitionTimeoutRef = React.useRef<number | null>(null);
+  const introHoldTimeoutRef = React.useRef<number | null>(null);
+  const introHideTimeoutRef = React.useRef<number | null>(null);
+  const lastIntroPlayIdRef = React.useRef<number | null>(null);
+  const [introPhase, setIntroPhase] = React.useState<'hidden' | 'show' | 'leaving'>('hidden');
 
   const getClampedScrollPosition = React.useCallback((
     scrollContainer: HTMLDivElement,
@@ -206,12 +220,56 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   }, [isVisible, shouldRender]);
 
   React.useEffect(() => {
+    const clearIntroTimers = () => {
+      if (introHoldTimeoutRef.current !== null) {
+        window.clearTimeout(introHoldTimeoutRef.current);
+        introHoldTimeoutRef.current = null;
+      }
+      if (introHideTimeoutRef.current !== null) {
+        window.clearTimeout(introHideTimeoutRef.current);
+        introHideTimeoutRef.current = null;
+      }
+    };
+
+    if (
+      isVisible &&
+      introImageUrl &&
+      introPlayId &&
+      introPlayId > 0 &&
+      introPlayId !== lastIntroPlayIdRef.current
+    ) {
+      lastIntroPlayIdRef.current = introPlayId;
+      clearIntroTimers();
+      setIntroPhase('show');
+      introHoldTimeoutRef.current = window.setTimeout(() => {
+        setIntroPhase('leaving');
+        introHideTimeoutRef.current = window.setTimeout(() => {
+          setIntroPhase('hidden');
+        }, 1000); // out animation
+      }, 2000); // steady hold after 1s in
+    } else {
+      clearIntroTimers();
+      setIntroPhase('hidden');
+    }
+  }, [isVisible, introImageUrl, introPlayId]);
+
+  React.useEffect(() => {
+    onIntroVisibilityChange?.(introPhase !== 'hidden');
+  }, [introPhase, onIntroVisibilityChange]);
+
+  React.useEffect(() => {
     return () => {
       if (transitionFrameRef.current !== null) {
         window.cancelAnimationFrame(transitionFrameRef.current);
       }
       if (transitionTimeoutRef.current !== null) {
         window.clearTimeout(transitionTimeoutRef.current);
+      }
+      if (introHoldTimeoutRef.current !== null) {
+        window.clearTimeout(introHoldTimeoutRef.current);
+      }
+      if (introHideTimeoutRef.current !== null) {
+        window.clearTimeout(introHideTimeoutRef.current);
       }
     };
   }, []);
@@ -370,7 +428,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
 
   return (
     <aside
-      className={`stage-map-modal${isClosing ? ' is-closing' : ''}${isStageTransitioning ? ' is-stage-transitioning' : ''}${isEmbedded ? ' is-embedded' : ''}`}
+      className={`stage-map-modal${introPhase !== 'hidden' ? ' has-intro' : ''}${isClosing ? ' is-closing' : ''}${isStageTransitioning ? ' is-stage-transitioning' : ''}${isEmbedded ? ' is-embedded' : ''}`}
       role={isEmbedded ? undefined : 'dialog'}
       aria-modal={isEmbedded ? undefined : true}
       aria-label="Mapa da cidade"
@@ -379,6 +437,15 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
         <button type="button" className="stage-map-backdrop" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning} />
       ) : null}
       <div className="stage-map-card">
+        {introPhase !== 'hidden' && introImageUrl ? (
+          <div className={`stage-map-intro${introPhase === 'leaving' ? ' leaving' : ''}`} style={{ backgroundImage: `url(${introImageUrl})` }} aria-hidden="true">
+            <div className="stage-map-intro-scrim" />
+            <div className={`stage-map-intro-card${introPhase === 'leaving' ? ' leaving' : ''}`}>
+              {bandLogoUrl ? <img src={bandLogoUrl} alt="Logo da banda" className="stage-map-intro-logo" /> : null}
+              {bandName ? <strong className="stage-map-intro-name">{bandName}</strong> : null}
+            </div>
+          </div>
+        ) : null}
         {!isEmbedded ? (
           <button type="button" className="stage-map-close" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning}>
             Fechar mapa

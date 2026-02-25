@@ -2,7 +2,7 @@ import React from 'react';
 import './StageTopValuesBar.css';
 
 type StageTopValuesBarProps = {
-  bandLogoUrl: string;
+  configIcon: string;
   availableBandCoins: number;
   fans: number;
   fameStars: number;
@@ -16,10 +16,12 @@ type StageTopValuesBarProps = {
   topMoneyRef: React.RefObject<HTMLDivElement | null>;
   topFansRef: React.RefObject<HTMLDivElement | null>;
   topFameRef: React.RefObject<HTMLDivElement | null>;
+  className?: string;
+  isConfigOpen?: boolean;
 };
 
 const StageTopValuesBar: React.FC<StageTopValuesBarProps> = ({
-  bandLogoUrl,
+  configIcon,
   availableBandCoins,
   fans,
   fameStars,
@@ -33,16 +35,18 @@ const StageTopValuesBar: React.FC<StageTopValuesBarProps> = ({
   topMoneyRef,
   topFansRef,
   topFameRef,
+  className = '',
+  isConfigOpen = false,
 }) => {
   return (
-    <div className="stage-top-values">
+    <div className={`stage-top-values${className ? ` ${className}` : ''}`}>
       <button
         type="button"
-        className="band-config-trigger"
+        className={`band-config-trigger${isConfigOpen ? ' is-open' : ''}`}
         onClick={onOpenBandConfig}
         aria-label="Abrir configurações da banda"
       >
-        <img src={bandLogoUrl} alt="Logo da banda" className="band-config-trigger-logo" />
+        <img src={configIcon} alt="Configurações" className="band-config-trigger-logo" />
       </button>
       <div className="top-pill top-pill-money" ref={topMoneyRef}>
         <img src={iconMoneyBlack} alt="Dinheiro" className="top-pill-icon" />

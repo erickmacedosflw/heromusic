@@ -14,7 +14,15 @@
   flex-direction: column;
   gap: 8px;
   width: auto;
+  opacity: 1;
+  transform: translateX(0) scale(1);
   transition: opacity 360ms ease, transform 420ms cubic-bezier(0.2, 0.78, 0.22, 1);
+  animation: none;
+}
+
+.game-side-nav.map-ui-reveal {
+  animation: mapUiSideReveal 520ms cubic-bezier(0.2, 0.78, 0.22, 1) both;
+  will-change: opacity, transform;
 }
 
 .game-side-nav .bottom-item {
@@ -33,6 +41,7 @@
   opacity: 0;
   transform: translateX(-10px) scale(0.94);
   pointer-events: none;
+  animation: mapUiSideHide 420ms cubic-bezier(0.2, 0.78, 0.22, 1) forwards;
 }
 
 .bottom-item-label-side {
@@ -154,6 +163,28 @@
 
 .bottom-item.has-badge {
   overflow: visible;
+}
+
+@keyframes mapUiSideReveal {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes mapUiSideHide {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.92);
+  }
 }
 
 @media (max-width: 720px) {
