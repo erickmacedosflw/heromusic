@@ -24,12 +24,13 @@ type Stage3DSceneProps = {
 
 const baseCameraPosition = new THREE.Vector3(0, 5.25, 14.45);
 const baseLookAtPosition = new THREE.Vector3(0, 0.76, 0.42);
+const stageVerticalOffset = -1.22;
 
 const performerPositions: Record<StagePerformerInstrument, THREE.Vector3> = {
-  drums: new THREE.Vector3(0.95, 0.9, -0.66),
-  guitar: new THREE.Vector3(-2.7, 1, 0.42),
-  bass: new THREE.Vector3(2.7, 1, 1.06),
-  keys: new THREE.Vector3(-0.72, 1, 2.6),
+  drums: new THREE.Vector3(0.95, 0.9 + stageVerticalOffset, -0.66),
+  guitar: new THREE.Vector3(-2.7, 1 + stageVerticalOffset, 0.42),
+  bass: new THREE.Vector3(2.7, 1 + stageVerticalOffset, 1.06),
+  keys: new THREE.Vector3(-0.72, 1 + stageVerticalOffset, 2.6),
 };
 
 const performerSpriteScale: Record<StagePerformerInstrument, [number, number]> = {
@@ -58,8 +59,8 @@ type CameraShot = {
 const generalShot: CameraShot = {
   type: 'general',
   instrument: null,
-  pos: new THREE.Vector3(0, 5.2, 14.8),
-  look: new THREE.Vector3(0, 1.02, 0.06),
+  pos: new THREE.Vector3(0, 4.95, 14.8),
+  look: new THREE.Vector3(0, 0.35, 0.06),
   fov: 67,
   duration: 1.6,
 };
@@ -67,8 +68,8 @@ const generalShot: CameraShot = {
 const sweepShotLeft: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(-5.7, 4.65, 9.8),
-  look: new THREE.Vector3(0, 1.08, 0.12),
+  pos: new THREE.Vector3(-5.7, 4.38, 9.8),
+  look: new THREE.Vector3(0, 0.4, 0.12),
   fov: 62,
   duration: 8,
 };
@@ -76,8 +77,8 @@ const sweepShotLeft: CameraShot = {
 const sweepShotRight: CameraShot = {
   type: 'sweep',
   instrument: null,
-  pos: new THREE.Vector3(5.7, 4.65, 9.8),
-  look: new THREE.Vector3(0, 1.08, 0.12),
+  pos: new THREE.Vector3(5.7, 4.38, 9.8),
+  look: new THREE.Vector3(0, 0.4, 0.12),
   fov: 62,
   duration: 8,
 };
@@ -86,32 +87,32 @@ const focusShotByInstrument: Record<StagePerformerInstrument, CameraShot> = {
   guitar: {
     type: 'focus',
     instrument: 'guitar',
-    pos: new THREE.Vector3(-2.5, 2.7, 3.95),
-    look: new THREE.Vector3(-2.6, 1.84, -0.2),
+    pos: new THREE.Vector3(-2.5, 1.2, 3.95),
+    look: new THREE.Vector3(-2.6, 2.08, -0.2),
     fov: 50,
     duration: 5,
   },
   bass: {
     type: 'focus',
     instrument: 'bass',
-    pos: new THREE.Vector3(2.5, 2.7, 3.95),
-    look: new THREE.Vector3(2.6, 1.84, -0.2),
+    pos: new THREE.Vector3(2.5, 1.2, 3.95),
+    look: new THREE.Vector3(2.6, 2.08, -0.2),
     fov: 50,
     duration: 5,
   },
   drums: {
     type: 'focus',
     instrument: 'drums',
-    pos: new THREE.Vector3(0.9, 3.45, 3.08),
-    look: new THREE.Vector3(0.95, 1.96, -0.9),
+    pos: new THREE.Vector3(0.9, 1.82, 3.08),
+    look: new THREE.Vector3(0.95, 2.22, -0.9),
     fov: 49,
     duration: 5,
   },
   keys: {
     type: 'focus',
     instrument: 'keys',
-    pos: new THREE.Vector3(-0.82, 2.45, 3.46),
-    look: new THREE.Vector3(-0.96, 1.88, 1.74),
+    pos: new THREE.Vector3(-0.82, 1.1, 3.46),
+    look: new THREE.Vector3(-0.96, 2.1, 1.74),
     fov: 49,
     duration: 5,
   },
@@ -228,7 +229,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     backgroundPlane.position.set(0, 12.8, -44);
     backgroundPlane.renderOrder = -20;
     scene.add(backgroundPlane);
-    const backgroundBaseY = 7.3;
+    const backgroundBaseY = 9.1;
     const backgroundParallaxCurrent = new THREE.Vector2(0, 0);
     const backgroundParallaxTarget = new THREE.Vector2(0, 0);
     const backgroundParallaxLimits = new THREE.Vector2(0, 0);
@@ -376,7 +377,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     const floorGeometry = new THREE.PlaneGeometry(19, 19, 1, 1);
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2 + 0.055;
-    floor.position.y = 0;
+    floor.position.y = stageVerticalOffset;
     floor.receiveShadow = true;
     scene.add(floor);
 
@@ -387,7 +388,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       metalness: 0,
     });
     const frontEdge = new THREE.Mesh(frontEdgeGeometry, frontEdgeMaterial);
-    frontEdge.position.set(0, -0.16, 8.7);
+    frontEdge.position.set(0, -0.16 + stageVerticalOffset, 8.7);
     frontEdge.receiveShadow = true;
     scene.add(frontEdge);
 
@@ -437,7 +438,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const [scaleX, scaleY] = performerSpriteScale[musician.instrument];
       sprite.scale.set(scaleX, scaleY, 1);
       sprite.center.set(0.5, 0.02);
-      sprite.position.set(basePosition.x, 0.11, basePosition.z);
+      sprite.position.set(basePosition.x, 0.11 + stageVerticalOffset, basePosition.z);
       sprite.renderOrder = 5;
       scene.add(sprite);
 
@@ -452,7 +453,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const [shadowWidth, shadowHeight] = performerShadowScale[musician.instrument];
       shadow.scale.set(shadowWidth * 1.62, shadowHeight * 1.92, 1);
       shadow.rotation.x = floor.rotation.x;
-      shadow.position.set(basePosition.x, 0.035, basePosition.z - 0.2);
+      shadow.position.set(basePosition.x, 0.035 + stageVerticalOffset, basePosition.z - 0.2);
       shadow.userData.baseX = shadow.position.x;
       shadow.userData.baseZ = shadow.position.z;
       shadow.renderOrder = 3;
@@ -480,7 +481,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     (Object.keys(performerPositions) as StagePerformerInstrument[]).forEach((instrument) => {
       const position = performerPositions[instrument];
       const standIn = new THREE.Mesh(standInGeometry, standInMaterial);
-      standIn.position.set(position.x, 1, position.z);
+      standIn.position.set(position.x, 1 + stageVerticalOffset, position.z);
       standIn.castShadow = true;
       standIn.receiveShadow = false;
       performerStandIns.push(standIn);
@@ -647,7 +648,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const focusAnchor = focusPosition
         ? new THREE.Vector3(
           focusPosition.x,
-          focusPosition.y + 1.1,
+          focusPosition.y + 1.42,
           focusPosition.z + 0.04
         )
         : null;
@@ -661,7 +662,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         }
         shotDirection.normalize();
         targetPos.copy(focusAnchor).addScaledVector(shotDirection, closeDistance);
-        targetPos.y += 0.22;
+        targetPos.y -= 0.72;
       }
 
       targetPos.x += Math.sin(elapsed * (isCloseShot ? 0.92 : 0.52)) * handAmount
@@ -695,7 +696,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
           + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.009 : 0.005)
           + Math.sin(elapsed * 0.42) * (isCloseShot ? 0.01 : 0.03)
           + randomLookOffsetRef.current.x,
-        (focusAnchor ? focusAnchor.y + 0.14 : shot.look.y)
+        (focusAnchor ? focusAnchor.y - 0.2 : shot.look.y)
           + Math.cos(elapsed * 0.41) * (isCloseShot ? 0.007 : 0.003)
           + randomLookOffsetRef.current.y,
         (focusAnchor ? focusAnchor.z : shot.look.z) + randomLookOffsetRef.current.z
@@ -706,7 +707,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         targetLook.y += Math.cos(elapsed * 0.2) * 0.009;
       }
 
-      targetLook.y += isCloseShot ? 0.16 : 0.28;
+      targetLook.y += isCloseShot ? -0.14 : 0.3;
 
       cameraTarget.lerpVectors(fromShotPosRef.current, targetPos, easeProgress);
       lookAtTarget.lerpVectors(fromShotLookRef.current, targetLook, easeProgress);

@@ -26,6 +26,15 @@ const StageCurrentSongBar: React.FC<StageCurrentSongBarProps> = ({
 }) => {
   return (
     <div className="stage-current-song" ref={wrapperRef}>
+      <div className="stage-progress-item song-track">
+        <img src={iconMusicWhite} alt="Música" className="progress-icon" />
+        <div className="progress-bar-shell">
+          <span className="progress-fill" style={{ width: `${songProgressPct}%` }} />
+          <div className="progress-text song-progress-text">
+            <strong>{currentSongName}</strong>
+          </div>
+        </div>
+      </div>
       <div className="stage-progress-item fans-gain-track" ref={fansTrackRef}>
         <img src={iconFansWhite} alt="Ganho de fãs" className="progress-icon" />
         <div className="progress-bar-shell">
@@ -34,15 +43,6 @@ const StageCurrentSongBar: React.FC<StageCurrentSongBarProps> = ({
             <strong>{Math.round(fansGainRate * 100)}%</strong>
           </div>
           <span className={`fans-gain-step-burst${fansStepFlash ? ' show' : ''}`}>+5%</span>
-        </div>
-      </div>
-      <div className="stage-progress-item song-track">
-        <img src={iconMusicWhite} alt="Música" className="progress-icon" />
-        <div className="progress-bar-shell">
-          <span className="progress-fill" style={{ width: `${songProgressPct}%` }} />
-          <div className="progress-text song-progress-text">
-            <strong>{currentSongName}</strong>
-          </div>
         </div>
       </div>
     </div>

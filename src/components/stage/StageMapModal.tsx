@@ -14,41 +14,84 @@ type StageMapModalProps = {
   mapImageUrl: string;
   stages: StageMapEntry[];
   currentStageId: number;
+  isEmbedded?: boolean;
+  onStageTransitionStart?: () => void;
   onClose: () => void;
   onSelectStage: (stageId: number) => void;
 };
+const STAGE_SELECT_TRANSITION_MS = 3000;
+const STAGE_MAP_CLOSE_FADE_MS = 620;
+const STAGE_BLACKOUT_START_PROGRESS = 0.68;
+const STAGE_SELECT_ZOOM_MULTIPLIER = 1.75;
+const TOUCH_SCROLL_DAMPING = 0.52;
 
 const StageMapModal: React.FC<StageMapModalProps> = ({
   isVisible,
   mapImageUrl,
   stages,
   currentStageId,
+  isEmbedded = false,
+  onStageTransitionStart,
   onClose,
   onSelectStage,
 }) => {
+  const initialScaleMultiplier = 1.4;
   const mapImageRef = React.useRef<HTMLImageElement | null>(null);
   const mapScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const hasInitializedOpenViewRef = React.useRef(false);
   const [imageSize, setImageSize] = React.useState({ width: 0, height: 0 });
   const [mapScale, setMapScale] = React.useState(1);
+  const mapScaleRef = React.useRef(1);
   const pinchStartDistanceRef = React.useRef<number | null>(null);
   const pinchStartScaleRef = React.useRef(1);
+  const touchPanLastPointRef = React.useRef<{ x: number; y: number } | null>(null);
   const [shouldRender, setShouldRender] = React.useState(isVisible);
   const [isClosing, setIsClosing] = React.useState(false);
+  const [isStageTransitioning, setIsStageTransitioning] = React.useState(false);
+  const [transitionOverlayOpacity, setTransitionOverlayOpacity] = React.useState(0);
+  const transitionFrameRef = React.useRef<number | null>(null);
+  const transitionTimeoutRef = React.useRef<number | null>(null);
 
-  const minScale = React.useMemo(() => {
-    if (imageSize.height <= 0 || !mapScrollRef.current) {
-      return 0.2;
-    }
+  const getClampedScrollPosition = React.useCallback((
+    scrollContainer: HTMLDivElement,
+    left: number,
+    top: number,
+    scale = mapScaleRef.current,
+  ) => {
+    const renderedWidth = imageSize.width > 0 ? imageSize.width * scale : scrollContainer.scrollWidth;
+    const renderedHeight = imageSize.height > 0 ? imageSize.height * scale : scrollContainer.scrollHeight;
+    const maxScrollLeft = Math.max(0, renderedWidth - scrollContainer.clientWidth);
+    const maxScrollTop = Math.max(0, renderedHeight - scrollContainer.clientHeight);
 
-    const containerHeight = mapScrollRef.current.clientHeight;
-    if (!containerHeight) {
-      return 0.2;
-    }
-
-    return Math.min(1, Math.max(0.2, containerHeight / imageSize.height));
+    return {
+      left: Math.max(0, Math.min(maxScrollLeft, left)),
+      top: Math.max(0, Math.min(maxScrollTop, top)),
+    };
   }, [imageSize]);
 
   React.useEffect(() => {
+    mapScaleRef.current = mapScale;
+  }, [mapScale]);
+
+  const minScale = React.useMemo(() => {
+    if (imageSize.height <= 0 || imageSize.width <= 0 || !mapScrollRef.current) {
+      return 0.2;
+    }
+
+    const containerWidth = mapScrollRef.current.clientWidth;
+    const containerHeight = mapScrollRef.current.clientHeight;
+    if (!containerWidth || !containerHeight) {
+      return 0.2;
+    }
+
+    const fitHeightScale = containerHeight / imageSize.height;
+    const fitWidthScale = containerWidth / imageSize.width;
+    const coverScale = Math.max(fitHeightScale, fitWidthScale);
+
+    return Math.max(0.2, coverScale);
+  }, [imageSize]);
+
+  React.useLayoutEffect(() => {
     setMapScale((current) => Math.max(minScale, Math.min(4, current)));
   }, [minScale]);
 
@@ -65,6 +108,11 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      touchPanLastPointRef.current = { x: touch.clientX, y: touch.clientY };
+    }
+
     const distance = getTouchDistance(event.touches);
     if (!distance) {
       return;
@@ -75,6 +123,27 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const scrollContainer = mapScrollRef.current;
+    if (event.touches.length === 1 && pinchStartDistanceRef.current === null && scrollContainer) {
+      const touch = event.touches[0];
+      const previousTouch = touchPanLastPointRef.current;
+      if (previousTouch) {
+        const deltaX = (touch.clientX - previousTouch.x) * TOUCH_SCROLL_DAMPING;
+        const deltaY = (touch.clientY - previousTouch.y) * TOUCH_SCROLL_DAMPING;
+
+        const targetLeft = scrollContainer.scrollLeft - deltaX;
+        const targetTop = scrollContainer.scrollTop - deltaY;
+        const clampedPosition = getClampedScrollPosition(scrollContainer, targetLeft, targetTop);
+
+        event.preventDefault();
+        scrollContainer.scrollLeft = clampedPosition.left;
+        scrollContainer.scrollTop = clampedPosition.top;
+      }
+
+      touchPanLastPointRef.current = { x: touch.clientX, y: touch.clientY };
+      return;
+    }
+
     const distance = getTouchDistance(event.touches);
     const startDistance = pinchStartDistanceRef.current;
     if (!distance || !startDistance) {
@@ -88,6 +157,10 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length === 0) {
+      touchPanLastPointRef.current = null;
+    }
+
     if (event.touches.length < 2) {
       pinchStartDistanceRef.current = null;
       return;
@@ -106,6 +179,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     if (isVisible) {
       setShouldRender(true);
       setIsClosing(false);
+      setIsStageTransitioning(false);
+      setTransitionOverlayOpacity(0);
+      hasInitializedOpenViewRef.current = false;
       return;
     }
 
@@ -117,18 +193,170 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     const timeoutId = window.setTimeout(() => {
       setShouldRender(false);
       setIsClosing(false);
-    }, 220);
+    }, STAGE_MAP_CLOSE_FADE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
   }, [isVisible, shouldRender]);
+
+  React.useEffect(() => {
+    return () => {
+      if (transitionFrameRef.current !== null) {
+        window.cancelAnimationFrame(transitionFrameRef.current);
+      }
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (
+      !isVisible ||
+      !shouldRender ||
+      hasInitializedOpenViewRef.current ||
+      imageSize.width <= 0 ||
+      imageSize.height <= 0
+    ) {
+      return;
+    }
+
+    const scrollContainer = mapScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    const defaultScale = Math.max(minScale, Math.min(4, minScale * initialScaleMultiplier));
+    const targetScale = defaultScale;
+
+    if (Math.abs(mapScale - targetScale) > 0.001) {
+      setMapScale(targetScale);
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const renderedWidth = imageSize.width * mapScale;
+      const renderedHeight = imageSize.height * mapScale;
+
+      const defaultLeft = Math.max(0, (renderedWidth - scrollContainer.clientWidth) / 2);
+      const defaultTop = Math.max(0, (renderedHeight - scrollContainer.clientHeight) / 2);
+      const clampedPosition = getClampedScrollPosition(scrollContainer, defaultLeft, defaultTop);
+
+      scrollContainer.scrollTo({
+        left: clampedPosition.left,
+        top: clampedPosition.top,
+        behavior: 'auto',
+      });
+      hasInitializedOpenViewRef.current = true;
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isVisible, shouldRender, imageSize, minScale, mapScale, getClampedScrollPosition]);
+
+  const handleMapScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (isStageTransitioning) {
+      return;
+    }
+
+    const scrollContainer = event.currentTarget;
+    const clampedPosition = getClampedScrollPosition(scrollContainer, scrollContainer.scrollLeft, scrollContainer.scrollTop);
+
+    if (Math.abs(clampedPosition.left - scrollContainer.scrollLeft) > 0.5) {
+      scrollContainer.scrollLeft = clampedPosition.left;
+    }
+    if (Math.abs(clampedPosition.top - scrollContainer.scrollTop) > 0.5) {
+      scrollContainer.scrollTop = clampedPosition.top;
+    }
+
+  };
+
+  const handleSelectStageWithTransition = (stage: StageMapEntry) => {
+    if (isStageTransitioning) {
+      return;
+    }
+
+    const scrollContainer = mapScrollRef.current;
+    if (!scrollContainer || imageSize.width <= 0 || imageSize.height <= 0) {
+      onStageTransitionStart?.();
+      onSelectStage(stage.id);
+      if (!isEmbedded) {
+        onClose();
+      }
+      return;
+    }
+
+    if (transitionFrameRef.current !== null) {
+      window.cancelAnimationFrame(transitionFrameRef.current);
+      transitionFrameRef.current = null;
+    }
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+
+    onStageTransitionStart?.();
+    setIsStageTransitioning(true);
+    setTransitionOverlayOpacity(0);
+
+    const startScale = mapScale;
+    const startLeft = scrollContainer.scrollLeft;
+    const startTop = scrollContainer.scrollTop;
+    const targetScale = Math.max(minScale, Math.min(4, Math.max(mapScale * STAGE_SELECT_ZOOM_MULTIPLIER, minScale * 2.05)));
+
+    const targetPointX = (stage.x / 100) * imageSize.width * targetScale;
+    const targetPointY = (stage.y / 100) * imageSize.height * targetScale;
+    const requestedLeft = targetPointX - scrollContainer.clientWidth / 2;
+    const requestedTop = targetPointY - scrollContainer.clientHeight / 2;
+    const targetPosition = getClampedScrollPosition(scrollContainer, requestedLeft, requestedTop, targetScale);
+
+    const animationStart = performance.now();
+    const easeInOutCubic = (value: number) => (value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2);
+
+    const animate = (now: number) => {
+      const elapsed = now - animationStart;
+      const progress = Math.min(1, elapsed / STAGE_SELECT_TRANSITION_MS);
+      const easedProgress = easeInOutCubic(progress);
+      const blackoutProgress = Math.max(0, (easedProgress - STAGE_BLACKOUT_START_PROGRESS) / (1 - STAGE_BLACKOUT_START_PROGRESS));
+
+      const nextScale = startScale + (targetScale - startScale) * easedProgress;
+      const nextLeft = startLeft + (targetPosition.left - startLeft) * easedProgress;
+      const nextTop = startTop + (targetPosition.top - startTop) * easedProgress;
+      const nextOverlayOpacity = Math.max(0, Math.min(1, blackoutProgress));
+
+      mapScaleRef.current = nextScale;
+      setMapScale(nextScale);
+      setTransitionOverlayOpacity(nextOverlayOpacity);
+      scrollContainer.scrollTo({
+        left: nextLeft,
+        top: nextTop,
+        behavior: 'auto',
+      });
+
+      if (progress < 1) {
+        transitionFrameRef.current = window.requestAnimationFrame(animate);
+        return;
+      }
+
+      transitionFrameRef.current = null;
+      setTransitionOverlayOpacity(1);
+      transitionTimeoutRef.current = window.setTimeout(() => {
+        onSelectStage(stage.id);
+        if (!isEmbedded) {
+          onClose();
+        }
+      }, 0);
+    };
+
+    transitionFrameRef.current = window.requestAnimationFrame(animate);
+  };
+
   const markersToRender = stages.map((stage) => ({
-    id: stage.id,
-    name: stage.name,
-    badgeUrl: stage.badgeUrl,
-    x: imageSize.width > 0 ? ((stage.x / 100) * imageSize.width) * mapScale : 0,
-    y: imageSize.height > 0 ? ((stage.y / 100) * imageSize.height) * mapScale : 0,
+    ...stage,
+    renderX: imageSize.width > 0 ? ((stage.x / 100) * imageSize.width) * mapScale : 0,
+    renderY: imageSize.height > 0 ? ((stage.y / 100) * imageSize.height) * mapScale : 0,
   }));
 
   if (!shouldRender) {
@@ -136,16 +364,27 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   }
 
   return (
-    <aside className={`stage-map-modal${isClosing ? ' is-closing' : ''}`} role="dialog" aria-modal="true" aria-label="Mapa da cidade">
-      <button type="button" className="stage-map-backdrop" onClick={onClose} aria-label="Fechar mapa" />
+    <aside
+      className={`stage-map-modal${isClosing ? ' is-closing' : ''}${isStageTransitioning ? ' is-stage-transitioning' : ''}${isEmbedded ? ' is-embedded' : ''}`}
+      role={isEmbedded ? undefined : 'dialog'}
+      aria-modal={isEmbedded ? undefined : true}
+      aria-label="Mapa da cidade"
+    >
+      {!isEmbedded ? (
+        <button type="button" className="stage-map-backdrop" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning} />
+      ) : null}
       <div className="stage-map-card">
-        <button type="button" className="stage-map-close" onClick={onClose} aria-label="Fechar mapa">
-          Fechar mapa
-        </button>
+        {!isEmbedded ? (
+          <button type="button" className="stage-map-close" onClick={onClose} aria-label="Fechar mapa" disabled={isStageTransitioning}>
+            Fechar mapa
+          </button>
+        ) : null}
+        <div className="stage-map-transition-overlay" style={{ opacity: transitionOverlayOpacity }} aria-hidden="true" />
 
         <div
           ref={mapScrollRef}
           className="stage-map-scroll"
+          onScroll={handleMapScroll}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -154,8 +393,8 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
           <div
             className="stage-map-world"
             style={{
-              width: imageSize.width > 0 ? `${Math.round(imageSize.width * mapScale)}px` : 'max-content',
-              height: imageSize.height > 0 ? `${Math.round(imageSize.height * mapScale)}px` : 'auto',
+              width: imageSize.width > 0 ? `${imageSize.width * mapScale}px` : 'max-content',
+              height: imageSize.height > 0 ? `${imageSize.height * mapScale}px` : 'auto',
             }}
           >
             <img
@@ -164,33 +403,32 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
               alt="Mapa da cidade"
               className="stage-map-image"
               style={{
-                width: imageSize.width > 0 ? `${Math.round(imageSize.width * mapScale)}px` : 'auto',
-                height: imageSize.height > 0 ? `${Math.round(imageSize.height * mapScale)}px` : 'auto',
+                width: imageSize.width > 0 ? `${imageSize.width * mapScale}px` : 'auto',
+                height: imageSize.height > 0 ? `${imageSize.height * mapScale}px` : 'auto',
               }}
               onLoad={(event) => {
                 const image = event.currentTarget;
                 setImageSize({ width: image.naturalWidth, height: image.naturalHeight });
-                setMapScale(1);
               }}
             />
-          {markersToRender.map((stage) => {
-            const isActive = stage.id === currentStageId;
+          {markersToRender.map((marker) => {
+            const isActive = marker.id === currentStageId;
             return (
               <button
-                key={stage.id}
+                key={marker.id}
                 type="button"
                 className={`stage-map-point${isActive ? ' is-active' : ''}`}
-                style={{ left: `${stage.x}px`, top: `${stage.y}px` }}
+                style={{ left: `${marker.renderX}px`, top: `${marker.renderY}px` }}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onSelectStage(stage.id);
-                  onClose();
+                  handleSelectStageWithTransition(marker);
                 }}
-                title={stage.name}
-                aria-label={`Ir para ${stage.name}`}
+                title={marker.name}
+                aria-label={`Ir para ${marker.name}`}
+                disabled={isStageTransitioning}
               >
-                <img src={stage.badgeUrl} alt={stage.name} />
-                <span>{stage.name}</span>
+                <img src={marker.badgeUrl} alt={marker.name} />
+                <span>{marker.name}</span>
               </button>
             );
           })}

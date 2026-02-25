@@ -3,6 +3,7 @@
   inset: 0;
   z-index: 80;
   display: block;
+  overscroll-behavior: none;
 }
 
 .stage-map-backdrop {
@@ -12,8 +13,8 @@
   background: rgba(0, 0, 0, 0.58);
   backdrop-filter: blur(2px);
   opacity: 1;
-  transition: opacity 220ms ease;
-  animation: stageMapBackdropIn 220ms ease;
+  transition: opacity 620ms ease;
+  animation: stageMapBackdropIn 240ms ease;
 }
 
 .stage-map-card {
@@ -30,7 +31,7 @@
   display: block;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition: opacity 620ms ease, transform 620ms ease;
   animation: stageMapCardIn 240ms cubic-bezier(0.2, 0.78, 0.22, 1);
 }
 
@@ -63,6 +64,10 @@
   transform: translateY(10px);
 }
 
+.stage-map-modal.is-closing .stage-map-transition-overlay {
+  opacity: 1;
+}
+
 .stage-map-close {
   position: absolute;
   right: 12px;
@@ -78,19 +83,45 @@
   cursor: pointer;
 }
 
+.stage-map-close:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.stage-map-transition-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: #000000;
+  transition: opacity 120ms linear;
+}
+
+.stage-map-modal.is-stage-transitioning .stage-map-scroll {
+  pointer-events: none;
+}
+
+.stage-map-modal.is-stage-transitioning .stage-map-point {
+  opacity: 0.9;
+  transition: opacity 220ms ease;
+}
+
 .stage-map-scroll {
   position: relative;
   overflow: auto;
   width: 100%;
   height: 100%;
+  scroll-behavior: auto;
+  overscroll-behavior: none;
   touch-action: pan-x pan-y;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: auto;
 }
 
 .stage-map-world {
   position: relative;
   width: max-content;
-  min-width: 100%;
+  overflow: hidden;
 }
 
 .stage-map-image {

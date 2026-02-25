@@ -1,11 +1,11 @@
 .band-management-screen {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background-size: 100% auto;
   background-repeat: no-repeat;
   background-position: top center;
   background-color: rgba(12, 12, 12, 0.9);
-  z-index: 8;
+  z-index: 170;
   overflow: hidden;
   animation: musiciansModalIn 340ms ease-out;
 }

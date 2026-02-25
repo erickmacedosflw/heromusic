@@ -13,6 +13,7 @@ type StageCenterPanelProps = {
   bandFansValue: number;
   bandPerformanceValue: number;
   selectedStageName: string;
+  onExitShow: () => void;
   venueBadgeIcon: string;
   stageTicketPrice: number;
   lotacaoTotalValue: number;
@@ -48,6 +49,7 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
   bandFansValue,
   bandPerformanceValue,
   selectedStageName,
+  onExitShow,
   venueBadgeIcon,
   stageTicketPrice,
   lotacaoTotalValue,
@@ -72,6 +74,24 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
 }) => {
   return (
     <div className="stage-center-panel" ref={wrapperRef}>
+      <div className="venue-card">
+        <div className="venue-layout">
+          <img src={venueBadgeIcon} alt="Badge do local" className="venue-badge-icon" />
+          <div className="venue-info">
+            <div className="venue-title-row">
+              <h3>{selectedStageName}</h3>
+              <button type="button" className="venue-exit-btn" onClick={onExitShow} data-click-sfx="close">
+                Voltar ao mapa
+              </button>
+            </div>
+            <div className="venue-meta">
+              <span><img src={iconIngresso} alt="Ingresso" className="venue-meta-icon" /> {formatCurrency(stageTicketPrice)}</span>
+              <span><img src={iconValorCacheTotal} alt="Valor total da lotação" className="venue-meta-icon" /> {formatCurrency(lotacaoTotalValue)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mini-kpis">
         <div className="kpi-box">
           <img src={iconFameWhite} alt="Fama" className="kpi-main-icon" />
@@ -99,19 +119,6 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
           <div className="kpi-texts">
             <span className="kpi-name">Cachê</span>
             <strong>{formatCurrency(bandCostValue)}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="venue-card">
-        <div className="venue-layout">
-          <img src={venueBadgeIcon} alt="Badge do local" className="venue-badge-icon" />
-          <div className="venue-info">
-            <h3>{selectedStageName}</h3>
-            <div className="venue-meta">
-              <span><img src={iconIngresso} alt="Ingresso" className="venue-meta-icon" /> {formatCurrency(stageTicketPrice)}</span>
-              <span><img src={iconValorCacheTotal} alt="Valor total da lotação" className="venue-meta-icon" /> {formatCurrency(lotacaoTotalValue)}</span>
-            </div>
           </div>
         </div>
       </div>

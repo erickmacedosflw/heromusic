@@ -2,6 +2,8 @@ import React from 'react';
 import './StageBottomNav.css';
 
 type StageBottomNavProps = {
+  variant?: 'bottom' | 'side';
+  isHiding?: boolean;
   isBandManagementScreenVisible: boolean;
   availableToHireCount: number;
   navBand: string;
@@ -15,6 +17,8 @@ type StageBottomNavProps = {
 };
 
 const StageBottomNav: React.FC<StageBottomNavProps> = ({
+  variant = 'bottom',
+  isHiding = false,
   isBandManagementScreenVisible,
   availableToHireCount,
   navBand,
@@ -27,33 +31,33 @@ const StageBottomNav: React.FC<StageBottomNavProps> = ({
   onCycleStage,
 }) => {
   return (
-    <div className="game-bottom-nav">
+    <div className={`game-bottom-nav${variant === 'side' ? ' game-side-nav' : ''}${isHiding ? ' is-hiding' : ''}`}>
       <button
         type="button"
         className={`bottom-item${isBandManagementScreenVisible ? ' active' : ''}`}
         onClick={onOpenBandManagementScreen}
       >
         <img src={navBand} alt="Banda" className="bottom-item-icon" />
-        <span>Banda</span>
+        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Banda</span>
       </button>
       <button type="button" className={`bottom-item${availableToHireCount > 0 ? ' has-badge' : ''}`} onClick={onOpenMusiciansScreen}>
         {availableToHireCount > 0 ? (
           <span className="bottom-item-badge bottom-item-badge-green">{availableToHireCount > 99 ? '99+' : availableToHireCount}</span>
         ) : null}
         <img src={navHire} alt="Músicos" className="bottom-item-icon" />
-        <span>Músicos</span>
+        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Músicos</span>
       </button>
       <button type="button" className="bottom-item">
         <img src={navStore} alt="Loja" className="bottom-item-icon" />
-        <span>Loja</span>
+        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Loja</span>
       </button>
       <button type="button" className="bottom-item" onClick={onCycleStage}>
         <img src={navStage} alt="Palco" className="bottom-item-icon" />
-        <span>Palco</span>
+        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Palco</span>
       </button>
       <button type="button" className="bottom-item">
         <img src={navSongs} alt="Músicas" className="bottom-item-icon" />
-        <span>Músicas</span>
+        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Músicas</span>
       </button>
     </div>
   );

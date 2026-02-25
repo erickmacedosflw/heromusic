@@ -45,7 +45,7 @@ const navHire = new URL('../rsc/images/icons/contratar.jpg', import.meta.url).hr
 const navStore = new URL('../rsc/images/icons/loja.jpg', import.meta.url).href;
 const navStage = new URL('../rsc/images/icons/palcos.jpg', import.meta.url).href;
 const navSongs = new URL('../rsc/images/icons/musicas.png', import.meta.url).href;
-const stageWorldMap = new URL('../rsc/images/maps/Mapa_Mundo.png', import.meta.url).href;
+const stageWorldMap = new URL('../rsc/images/maps/Mapa_Mundo.jpeg', import.meta.url).href;
 const backgroundAudicao = new URL('../rsc/images/backgrounds/audicao.jpg', import.meta.url).href;
 const backgroundBackstage = new URL('../rsc/images/backgrounds/Backstage.jpg', import.meta.url).href;
 const portraitContratante = new URL('../rsc/images/facesets/velho_contratante_musicos.png', import.meta.url).href;
@@ -72,6 +72,8 @@ const sfxMoneyReward = new URL('../rsc/audios/Dinheiro_Entrando_2.mp3', import.m
 const sfxCrowdApplause = new URL('../rsc/audios/Aplausos.mp3', import.meta.url).href;
 const sfxPurchased = new URL('../rsc/audios/Comprado.mp3', import.meta.url).href;
 const sfxStarReward = new URL('../rsc/audios/efeito_estrela.mp3', import.meta.url).href;
+const ambienceMapAudio = new URL('../rsc/audios/Ambience_Soud_Mapa.mp3', import.meta.url).href;
+const ambienceStageCrowdAudio = new URL('../rsc/audios/Ambiance_Pessoas_palco.mp3', import.meta.url).href;
 
 type StageData = {
   IDPalco: number;
@@ -341,6 +343,8 @@ const MUSICIANS_MODAL_CLOSE_MS = 260;
 const MUSICIANS_DETAIL_CLOSE_MS = 220;
 const BAND_MODAL_CLOSE_MS = 240;
 const BAND_CONFIG_CLOSE_MS = 220;
+const MAP_RETURN_FADE_OUT_MS = 520;
+const MAP_RETURN_FADE_IN_MS = 420;
 const instrumentById: Record<number, Instrument> = {
   1: 'guitar',
   2: 'bass',
@@ -364,6 +368,12 @@ const instrumentNameById: Record<number, string> = {
 
 const instrumentPlaybackOrder: Instrument[] = ['drums', 'bass', 'guitar', 'keys'];
 const instrumentConfigOrder: Instrument[] = ['guitar', 'bass', 'drums', 'keys'];
+const AMBIENCE_FADE_IN_MS = 900;
+const AMBIENCE_FADE_OUT_MS = 520;
+const STAGE_STEM_FADE_IN_MS = 700;
+const STAGE_STEM_FADE_OUT_MS = 420;
+const MAP_AMBIENCE_VOLUME = 0.005;
+const STAGE_AMBIENCE_VOLUME = 0.48;
 const instrumentIconByInstrument: Record<Instrument, string> = {
   guitar: iconGuitarra,
   drums: iconBateria,
@@ -415,6 +425,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const garageAudioRef = useRef<Howl | null>(null);
   const stageStemAudiosRef = useRef<Partial<Record<Instrument, Howl>>>({});
   const stagePlaybackSecRef = useRef(0);
+  const stageStemFadeTimeoutsRef = useRef<Partial<Record<Instrument, number>>>({});
   const isMusicPlayingRef = useRef(false);
   const rhythmStreakRef = useRef(0);
   const rhythmBonusRef = useRef(1);
@@ -447,11 +458,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const crowdDecayAmountRef = useRef(0);
   const fansStepIndexRef = useRef(0);
   const fansStepFlashTimeoutRef = useRef<number | null>(null);
+  const mapReturnTransitionTimeoutRef = useRef<number | null>(null);
   const [tapEffects, setTapEffects] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [rewardParticles, setRewardParticles] = useState<RewardParticle[]>([]);
   const [rewardTexts, setRewardTexts] = useState<RewardFloatText[]>([]);
   const [isLoopTransitioning, setIsLoopTransitioning] = useState(false);
-  const [isStageMapVisible, setIsStageMapVisible] = useState(false);
+  const [isStageShowActive, setIsStageShowActive] = useState(false);
+  const [isSideMenuHiding, setIsSideMenuHiding] = useState(false);
+  const [mapReturnTransitionPhase, setMapReturnTransitionPhase] = useState<'idle' | 'to-black' | 'from-black'>('idle');
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
@@ -459,6 +473,10 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const applauseHowlRef = useRef<Howl | null>(null);
   const purchaseHowlRef = useRef<Howl | null>(null);
   const starRewardHowlRef = useRef<Howl | null>(null);
+  const mapAmbienceHowlRef = useRef<Howl | null>(null);
+  const stageAmbienceHowlRef = useRef<Howl | null>(null);
+  const mapAmbienceFadeTimeoutRef = useRef<number | null>(null);
+  const stageAmbienceFadeTimeoutRef = useRef<number | null>(null);
   const {
     activeScreen,
     isClosingMusiciansScreen,
@@ -760,6 +778,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const getStageAudios = () =>
     Object.values(stageStemAudiosRef.current).filter((audio): audio is Howl => Boolean(audio));
 
+  const clearStageStemFadeTimeout = (instrument: Instrument) => {
+    const timeoutId = stageStemFadeTimeoutsRef.current[instrument];
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+      delete stageStemFadeTimeoutsRef.current[instrument];
+    }
+  };
+
   const pauseStageAudios = () => {
     const stageAudios = getStageAudios();
     if (stageAudios.length === 0) {
@@ -769,11 +795,88 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const primaryAudio = garageAudioRef.current ?? stageAudios[0];
     stagePlaybackSecRef.current = getHowlCurrentTime(primaryAudio);
 
-    stageAudios.forEach((audio) => {
-      if (audio.playing()) {
-        audio.pause();
+    instrumentPlaybackOrder.forEach((instrument) => {
+      const audio = stageStemAudiosRef.current[instrument];
+      if (!audio) {
+        return;
       }
+
+      clearStageStemFadeTimeout(instrument);
+
+      if (!audio.playing()) {
+        audio.volume(0);
+        return;
+      }
+
+      const currentVolume = Number(audio.volume()) || 0;
+      audio.fade(currentVolume, 0, STAGE_STEM_FADE_OUT_MS);
+      stageStemFadeTimeoutsRef.current[instrument] = window.setTimeout(() => {
+        if (audio.playing()) {
+          audio.pause();
+        }
+        audio.volume(0);
+        delete stageStemFadeTimeoutsRef.current[instrument];
+      }, STAGE_STEM_FADE_OUT_MS + 40);
     });
+  };
+
+  const clearAmbienceFadeTimeout = (timeoutRef: React.MutableRefObject<number | null>) => {
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
+
+  const playAmbienceWithFade = (
+    ambienceHowl: Howl | null,
+    targetVolume: number,
+    fadeTimeoutRef: React.MutableRefObject<number | null>
+  ) => {
+    if (!ambienceHowl) {
+      return;
+    }
+
+    clearAmbienceFadeTimeout(fadeTimeoutRef);
+
+    if (!ambienceHowl.playing()) {
+      ambienceHowl.volume(0);
+      ambienceHowl.play();
+    }
+
+    const currentVolume = Number(ambienceHowl.volume()) || 0;
+    if (currentVolume >= targetVolume) {
+      ambienceHowl.volume(targetVolume);
+      return;
+    }
+
+    ambienceHowl.fade(currentVolume, targetVolume, AMBIENCE_FADE_IN_MS);
+  };
+
+  const stopAmbienceWithFade = (
+    ambienceHowl: Howl | null,
+    fadeTimeoutRef: React.MutableRefObject<number | null>
+  ) => {
+    if (!ambienceHowl) {
+      return;
+    }
+
+    clearAmbienceFadeTimeout(fadeTimeoutRef);
+
+    if (!ambienceHowl.playing()) {
+      ambienceHowl.stop();
+      ambienceHowl.seek(0);
+      ambienceHowl.volume(0);
+      return;
+    }
+
+    const currentVolume = Number(ambienceHowl.volume()) || 0;
+    ambienceHowl.fade(currentVolume, 0, AMBIENCE_FADE_OUT_MS);
+    fadeTimeoutRef.current = window.setTimeout(() => {
+      ambienceHowl.stop();
+      ambienceHowl.seek(0);
+      ambienceHowl.volume(0);
+      fadeTimeoutRef.current = null;
+    }, AMBIENCE_FADE_OUT_MS + 60);
   };
 
   const attemptStageAudioPlay = () => {
@@ -804,9 +907,29 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
     stagePlayPendingRef.current = true;
 
-    stageAudios.forEach((audio) => {
-      audio.seek(baseTime);
-      audio.play();
+    instrumentPlaybackOrder.forEach((instrument) => {
+      const audio = stageStemAudiosRef.current[instrument];
+      if (!audio) {
+        return;
+      }
+
+      clearStageStemFadeTimeout(instrument);
+
+      const targetVolume = isMusicEnabledRef.current ? (instrumentVolumes[instrument] ?? 1) : 0;
+      const startFromZero = !audio.playing();
+
+      if (startFromZero) {
+        audio.seek(baseTime);
+        audio.volume(0);
+        audio.play();
+      }
+
+      const currentVolume = Number(audio.volume()) || 0;
+      if (currentVolume === targetVolume) {
+        return;
+      }
+
+      audio.fade(currentVolume, targetVolume, STAGE_STEM_FADE_IN_MS);
     });
   };
 
@@ -1183,10 +1306,42 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     }
   };
 
-  const handleCycleStage = () => {
-    if (selectableStages.length > 0) {
-      setIsStageMapVisible(true);
+  const handleExitStageShow = () => {
+    if (mapReturnTransitionPhase !== 'idle') {
+      return;
     }
+
+    pauseStageAudios();
+    stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
+    stagePlayPendingRef.current = false;
+    lastPulseAtRef.current = 0;
+    rhythmStreakRef.current = 0;
+    rhythmBonusRef.current = 1;
+    metronomeBeatIndexRef.current = -1;
+
+    setIsMusicPlaying(false);
+    setMetronomeTick(false);
+    setBeatHitFeedback(false);
+    setRhythmBonus(1);
+    setRhythmMeter(0);
+    setBonusFlash(false);
+
+    setMapReturnTransitionPhase('to-black');
+    if (mapReturnTransitionTimeoutRef.current) {
+      window.clearTimeout(mapReturnTransitionTimeoutRef.current);
+    }
+
+    mapReturnTransitionTimeoutRef.current = window.setTimeout(() => {
+      setIsLoopTransitioning(false);
+      setIsStageShowActive(false);
+      setIsSideMenuHiding(false);
+      setMapReturnTransitionPhase('from-black');
+
+      mapReturnTransitionTimeoutRef.current = window.setTimeout(() => {
+        setMapReturnTransitionPhase('idle');
+        mapReturnTransitionTimeoutRef.current = null;
+      }, MAP_RETURN_FADE_IN_MS);
+    }, MAP_RETURN_FADE_OUT_MS);
   };
 
   const triggerLoopTransition = () => {
@@ -1292,12 +1447,62 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [currentStageId, activeBandId]);
 
   useEffect(() => {
+    mapAmbienceHowlRef.current = new Howl({
+      src: [ambienceMapAudio],
+      preload: true,
+      html5: false,
+      loop: true,
+      volume: 0,
+    });
+
+    stageAmbienceHowlRef.current = new Howl({
+      src: [ambienceStageCrowdAudio],
+      preload: true,
+      html5: false,
+      loop: true,
+      volume: 0,
+    });
+
+    return () => {
+      clearAmbienceFadeTimeout(mapAmbienceFadeTimeoutRef);
+      clearAmbienceFadeTimeout(stageAmbienceFadeTimeoutRef);
+
+      mapAmbienceHowlRef.current?.stop();
+      mapAmbienceHowlRef.current?.unload();
+      mapAmbienceHowlRef.current = null;
+
+      stageAmbienceHowlRef.current?.stop();
+      stageAmbienceHowlRef.current?.unload();
+      stageAmbienceHowlRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const isAmbienceEnabled = isMusicEnabled && isSfxEnabled;
+
+    if (isStageShowActive) {
+      stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
+      if (isAmbienceEnabled) {
+        playAmbienceWithFade(stageAmbienceHowlRef.current, STAGE_AMBIENCE_VOLUME, stageAmbienceFadeTimeoutRef);
+      } else {
+        stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
+      }
+      return;
+    }
+
+    stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
+    if (isAmbienceEnabled) {
+      playAmbienceWithFade(mapAmbienceHowlRef.current, MAP_AMBIENCE_VOLUME, mapAmbienceFadeTimeoutRef);
+    } else {
+      stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
+    }
+  }, [isStageShowActive, isMusicEnabled, isSfxEnabled]);
+
+  useEffect(() => {
     pauseStageAudios();
     getStageAudios().forEach((audio) => {
       audio.seek(0);
     });
-
-    setIsStageMapVisible(false);
 
     stagePlayPendingRef.current = false;
     stagePlaybackSecRef.current = 0;
@@ -1536,6 +1741,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       if (loopTransitionTimeoutRef.current) {
         window.clearTimeout(loopTransitionTimeoutRef.current);
       }
+      if (mapReturnTransitionTimeoutRef.current) {
+        window.clearTimeout(mapReturnTransitionTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -1563,7 +1771,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   };
 
   const handlePointerPulse = (event: React.PointerEvent<HTMLElement>) => {
-    if (activeScreen !== 'band' || isBandManagementScreenVisible || isBandConfigVisible || isStageMapVisible) {
+    if (activeScreen !== 'band' || isBandManagementScreenVisible || isBandConfigVisible || !isStageShowActive) {
       return;
     }
 
@@ -1713,6 +1921,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       stageAudio?.off('end', handleAudioEnded);
       stageAudio?.off('seek', handleAudioSeek);
       stageAudio?.off('playerror', handlePlayError);
+      instrumentPlaybackOrder.forEach((instrument) => {
+        clearStageStemFadeTimeout(instrument);
+      });
       pauseStageAudios();
       getStageAudios().forEach((audio) => {
         audio.stop();
@@ -1883,24 +2094,28 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     >
       <div className={`stage-loop-fade${isLoopTransitioning ? ' show' : ''}`} aria-hidden="true" />
       <div className="stage-overlay" />
-      <Stage3DScene
-        key={`stage3d-${currentStageId}`}
-        textureUrl={defaultStageFloorTexture}
-        backgroundImageUrl={stage3DBackground}
-        backgroundVideoUrl={stageAnimatedBackground}
-        isMusicPlaying={isMusicPlaying}
-        activeMusicians={stage3DActiveMusicians}
-        activeMusiciansSignature={stage3DActiveMusiciansSignature}
-      />
-      <StageVisualEffectsLayer
-        tapEffects={tapEffects}
-        rewardParticles={rewardParticles}
-        rewardTexts={rewardTexts}
-        iconFansWhite={iconFansWhite}
-        iconMoneyWhite={iconMoneyWhite}
-        iconFameWhite={iconFameWhite}
-        formatNumber={formatNumber}
-      />
+      {isStageShowActive ? (
+        <>
+          <Stage3DScene
+            key={`stage3d-${currentStageId}`}
+            textureUrl={defaultStageFloorTexture}
+            backgroundImageUrl={stage3DBackground}
+            backgroundVideoUrl={stageAnimatedBackground}
+            isMusicPlaying={isMusicPlaying}
+            activeMusicians={stage3DActiveMusicians}
+            activeMusiciansSignature={stage3DActiveMusiciansSignature}
+          />
+          <StageVisualEffectsLayer
+            tapEffects={tapEffects}
+            rewardParticles={rewardParticles}
+            rewardTexts={rewardTexts}
+            iconFansWhite={iconFansWhite}
+            iconMoneyWhite={iconMoneyWhite}
+            iconFameWhite={iconFameWhite}
+            formatNumber={formatNumber}
+          />
+        </>
+      ) : null}
 
       <button type="button" className="back-link" onClick={onBackToMenu} data-click-sfx="close">
         Bandas
@@ -2032,80 +2247,95 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         }}
       />
 
-      <StageProgressList
-        iconFameWhite={iconFameWhite}
-        iconFansWhite={iconFansWhite}
-        famePct={famePct}
-        fameValue={fameValue}
-        fameTarget={fameTarget}
-        lotacaoPct={lotacaoPct}
-        lotacaoValue={lotacaoValue}
-        lotacaoTarget={lotacaoTarget}
-        formatNumber={formatNumber}
-        fameTrackRef={fameTrackRef}
-        crowdTrackRef={crowdTrackRef}
-      />
+      {isStageShowActive ? (
+        <div className="stage-progress-stack">
+          <StageProgressList
+            iconFameWhite={iconFameWhite}
+            iconFansWhite={iconFansWhite}
+            famePct={famePct}
+            fameValue={fameValue}
+            fameTarget={fameTarget}
+            lotacaoPct={lotacaoPct}
+            lotacaoValue={lotacaoValue}
+            lotacaoTarget={lotacaoTarget}
+            formatNumber={formatNumber}
+            fameTrackRef={fameTrackRef}
+            crowdTrackRef={crowdTrackRef}
+          />
 
-      <StageCenterPanel
-        iconFameWhite={iconFameWhite}
-        iconFansWhite={iconFansWhite}
-        iconRhythmWhite={iconRhythmWhite}
-        iconCost={iconCost}
-        iconIngresso={iconIngresso}
-        iconValorCacheTotal={iconValorCacheTotal}
-        iconCache={iconCache}
-        bandHypeValue={bandHypeValue}
-        bandFansValue={bandFansValue}
-        bandPerformanceValue={bandPerformanceValue}
-        selectedStageName={selectedStage?.Palco ?? 'Garagem de Casa'}
-        venueBadgeIcon={selectedStageBadge}
-        stageTicketPrice={stageTicketPrice}
-        lotacaoTotalValue={lotacaoTotalValue}
-        costSharePct={costSharePct}
-        gainSharePct={gainSharePct}
-        gainValue={gainValue}
-        metronomeTick={metronomeTick}
-        beatHitFeedback={beatHitFeedback}
-        isMusicPlaying={isMusicPlaying}
-        metronomeBeatMs={metronomeBeatMs}
-        rhythmBonus={rhythmBonus}
-        bonusFlash={bonusFlash}
-        rhythmMeter={rhythmMeter}
-        musicStartThreshold={RHYTHM_PLAY_THRESHOLD}
-        rhythmTone={getRhythmTone(rhythmMeter)}
-        bandCostValue={bandCostValue}
-        formatNumber={formatNumber}
-        formatPerformancePercent={formatPerformancePercent}
-        formatCurrency={formatCurrency}
-        gainMeterRef={gainMeterRef}
-        wrapperRef={centerPanelRef}
-      />
+          <StageCurrentSongBar
+            iconFansWhite={iconFansWhite}
+            iconMusicWhite={iconMusicWhite}
+            fansGainBarPct={fansGainBarPct}
+            fansGainRate={fansGainRate}
+            fansStepFlash={fansStepFlash}
+            songProgressPct={songProgressPct}
+            currentSongName={currentSongName}
+            wrapperRef={currentSongBarRef}
+            fansTrackRef={fansGainTrackRef}
+          />
+        </div>
+      ) : null}
 
-      <StageCurrentSongBar
-        iconFansWhite={iconFansWhite}
-        iconMusicWhite={iconMusicWhite}
-        fansGainBarPct={fansGainBarPct}
-        fansGainRate={fansGainRate}
-        fansStepFlash={fansStepFlash}
-        songProgressPct={songProgressPct}
-        currentSongName={currentSongName}
-        wrapperRef={currentSongBarRef}
-        fansTrackRef={fansGainTrackRef}
-      />
+      {isStageShowActive ? (
+        <StageCenterPanel
+          iconFameWhite={iconFameWhite}
+          iconFansWhite={iconFansWhite}
+          iconRhythmWhite={iconRhythmWhite}
+          iconCost={iconCost}
+          iconIngresso={iconIngresso}
+          iconValorCacheTotal={iconValorCacheTotal}
+          iconCache={iconCache}
+          bandHypeValue={bandHypeValue}
+          bandFansValue={bandFansValue}
+          bandPerformanceValue={bandPerformanceValue}
+          selectedStageName={selectedStage?.Palco ?? 'Garagem de Casa'}
+          onExitShow={handleExitStageShow}
+          venueBadgeIcon={selectedStageBadge}
+          stageTicketPrice={stageTicketPrice}
+          lotacaoTotalValue={lotacaoTotalValue}
+          costSharePct={costSharePct}
+          gainSharePct={gainSharePct}
+          gainValue={gainValue}
+          metronomeTick={metronomeTick}
+          beatHitFeedback={beatHitFeedback}
+          isMusicPlaying={isMusicPlaying}
+          metronomeBeatMs={metronomeBeatMs}
+          rhythmBonus={rhythmBonus}
+          bonusFlash={bonusFlash}
+          rhythmMeter={rhythmMeter}
+          musicStartThreshold={RHYTHM_PLAY_THRESHOLD}
+          rhythmTone={getRhythmTone(rhythmMeter)}
+          bandCostValue={bandCostValue}
+          formatNumber={formatNumber}
+          formatPerformancePercent={formatPerformancePercent}
+          formatCurrency={formatCurrency}
+          gainMeterRef={gainMeterRef}
+          wrapperRef={centerPanelRef}
+        />
+      ) : null}
 
       <StageMapModal
-        isVisible={isStageMapVisible}
+        isVisible={!isStageShowActive}
         mapImageUrl={stageWorldMap}
         stages={stageMapEntries}
         currentStageId={currentStageId}
-        onClose={() => setIsStageMapVisible(false)}
+        isEmbedded
+        onStageTransitionStart={() => {
+          setIsSideMenuHiding(true);
+        }}
+        onClose={() => undefined}
         onSelectStage={(stageId) => {
           setCurrentStage(stageId);
+          setIsStageShowActive(true);
+          setIsSideMenuHiding(false);
         }}
       />
 
-      {activeScreen !== 'musicians' && !isBandManagementScreenVisible ? (
+      {!isStageShowActive && activeScreen !== 'musicians' && !isBandManagementScreenVisible ? (
       <StageBottomNav
+        variant="side"
+        isHiding={isSideMenuHiding}
         isBandManagementScreenVisible={isBandManagementScreenVisible}
         availableToHireCount={availableToHireCount}
         navBand={navBand}
@@ -2115,9 +2345,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         navSongs={navSongs}
         onOpenBandManagementScreen={openBandManagementScreen}
         onOpenMusiciansScreen={openMusiciansScreen}
-        onCycleStage={handleCycleStage}
+        onCycleStage={() => undefined}
       />
       ) : null}
+
+      <div
+        className={`stage-map-return-overlay${mapReturnTransitionPhase !== 'idle' ? ' active' : ''}${mapReturnTransitionPhase === 'to-black' ? ' to-black' : ''}${mapReturnTransitionPhase === 'from-black' ? ' from-black' : ''}`}
+        aria-hidden="true"
+      />
     </section>
   );
 };

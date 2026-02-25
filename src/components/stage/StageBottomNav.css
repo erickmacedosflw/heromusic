@@ -5,6 +5,40 @@
   padding: 0;
 }
 
+.game-side-nav {
+  position: fixed;
+  left: 12px;
+  top: 88px;
+  z-index: 220;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  transition: opacity 360ms ease, transform 420ms cubic-bezier(0.2, 0.78, 0.22, 1);
+}
+
+.game-side-nav .bottom-item {
+  width: 50px;
+  min-height: 50px;
+  border-radius: 10px;
+  padding: 2px;
+  grid-template-rows: 1fr;
+}
+
+.game-side-nav .bottom-item-icon {
+  border-radius: 8px;
+}
+
+.game-side-nav.is-hiding {
+  opacity: 0;
+  transform: translateX(-10px) scale(0.94);
+  pointer-events: none;
+}
+
+.bottom-item-label-side {
+  display: none !important;
+}
+
 .bottom-item {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.96);
