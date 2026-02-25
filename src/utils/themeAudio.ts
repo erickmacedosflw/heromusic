@@ -11,13 +11,15 @@ let themeReverbReady = false;
 let themeDryGain: GainNode | null = null;
 let themeWetGain: GainNode | null = null;
 let themeConvolver: ConvolverNode | null = null;
+const isIOSDevice = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent);
+const shouldUseHtml5ThemeAudio = isIOSDevice;
 
 const themeHowl = new Howl({
   src: [themeMusicSrc],
-  preload: 'metadata',
+  preload: true,
   loop: true,
   volume: 0,
-  html5: false,
+  html5: shouldUseHtml5ThemeAudio,
   pool: 1,
 });
 
@@ -67,6 +69,10 @@ const ensureThemeReverb = () => {
 };
 
 const applyThemeReverbRouting = () => {
+  if (shouldUseHtml5ThemeAudio) {
+    return;
+  }
+
   ensureThemeReverb();
   if (!themeReverbReady || !themeDryGain || !themeWetGain || !themeConvolver) {
     return;

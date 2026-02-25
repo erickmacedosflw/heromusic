@@ -46,13 +46,19 @@ const App: React.FC = () => {
             return cleanupUnlock;
         }
 
-        pauseThemeMusic();
+        if (!isMusicEnabled || currentScene === 'boot') {
+            pauseThemeMusic();
+        }
     }, [currentScene, isMusicEnabled]);
 
     useEffect(() => {
         const resumeThemeIfNeeded = () => {
-            if (currentScene !== 'menu' || !isMusicEnabled) {
+            if (!isMusicEnabled) {
                 pauseThemeMusic();
+                return;
+            }
+
+            if (currentScene !== 'menu') {
                 return;
             }
 
@@ -95,7 +101,9 @@ const App: React.FC = () => {
                 return;
             }
 
-            pauseThemeMusic();
+            if (!musicEnabledRef.current) {
+                pauseThemeMusic();
+            }
         };
 
         const handleVisibilityChange = () => {

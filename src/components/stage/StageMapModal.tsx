@@ -135,7 +135,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
         const targetTop = scrollContainer.scrollTop - deltaY;
         const clampedPosition = getClampedScrollPosition(scrollContainer, targetLeft, targetTop);
 
-        event.preventDefault();
+        if (event.cancelable) {
+          event.preventDefault();
+        }
         scrollContainer.scrollLeft = clampedPosition.left;
         scrollContainer.scrollTop = clampedPosition.top;
       }
@@ -150,7 +152,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
       return;
     }
 
-    event.preventDefault();
+    if (event.cancelable) {
+      event.preventDefault();
+    }
     const pinchRatio = distance / startDistance;
     const nextScale = pinchStartScaleRef.current * pinchRatio;
     setMapScale(Math.max(minScale, Math.min(4, nextScale)));
