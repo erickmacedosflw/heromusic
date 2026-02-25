@@ -142,15 +142,17 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
     <article
       className={`musician-detail-card${selectedMusicianRarityClass ? ` rarity-${selectedMusicianRarityClass}` : ''}${isClosing ? ' closing' : ' show'}${isStoryOpen ? ' story-open' : ''}${displayMode === 'hero-stage' ? ' hero-stage' : ''}${customAction ? ' has-custom-action' : ''}`}
     >
-      <button
-        type="button"
-        className="musician-detail-close"
-        onClick={onCloseDetails}
-        data-click-sfx="close"
-        aria-label="Fechar detalhes do músico"
-      >
-        <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
-      </button>
+      {displayMode !== 'hero-stage' ? (
+        <button
+          type="button"
+          className="musician-detail-close"
+          onClick={onCloseDetails}
+          data-click-sfx="close"
+          aria-label="Fechar detalhes do músico"
+        >
+          <img src={iconFechar} alt="" aria-hidden="true" className="musicians-close-icon" />
+        </button>
+      ) : null}
       {showStoryToggle ? (
         <button
           type="button"

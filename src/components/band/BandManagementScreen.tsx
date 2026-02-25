@@ -137,6 +137,22 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
   const activeInstrumentIcon = activeBandColumn?.icon ?? iconMusicoVazio;
   const activeInstrumentRole = activeBandSelectorInstrument ? instrumentRoleByKey[activeBandSelectorInstrument] : 'músico';
 
+  React.useEffect(() => {
+    if (!activeBandSelectorInstrument || selectedSelectorDetail) {
+      return;
+    }
+
+    const currentMusicianId = activeBandColumn?.musicianId;
+    if (currentMusicianId === null || currentMusicianId === undefined) {
+      return;
+    }
+
+    const currentMusician = selectorMusicians.find((item) => item.id === currentMusicianId);
+    if (currentMusician) {
+      openSelectorDetail(currentMusician);
+    }
+  }, [activeBandSelectorInstrument, activeBandColumn, selectorMusicians, selectedSelectorDetail]);
+
   const openSelectorDetail = (musician: SelectorMusician) => {
     if (detailCloseTimeoutRef.current) {
       window.clearTimeout(detailCloseTimeoutRef.current);

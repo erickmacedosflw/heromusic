@@ -105,7 +105,7 @@ const BandInstrumentSelector: React.FC<BandInstrumentSelectorProps> = ({
 
   const handleOpenInstrument = (instrument: Instrument, musicianId: number | null) => {
     onOpenInstrument(instrument);
-    if (musicianId) {
+    if (musicianId !== null && musicianId !== undefined) {
       const detailMusician = selectorMusicians.find((item) => item.id === musicianId);
       if (detailMusician) {
         onOpenMusicianDetail(detailMusician);
