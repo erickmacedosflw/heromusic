@@ -103,6 +103,16 @@ const BandInstrumentSelector: React.FC<BandInstrumentSelectorProps> = ({
   const activeInstrumentIcon = activeColumn?.icon ?? iconMusicoVazio;
   const activeInstrumentRole = activeInstrument ? instrumentRoleByKey[activeInstrument] : 'músico';
 
+  const handleOpenInstrument = (instrument: Instrument, musicianId: number | null) => {
+    onOpenInstrument(instrument);
+    if (musicianId) {
+      const detailMusician = selectorMusicians.find((item) => item.id === musicianId);
+      if (detailMusician) {
+        onOpenMusicianDetail(detailMusician);
+      }
+    }
+  };
+
   return (
     <>
     <div className={`band-slot-columns${activeInstrument ? ' selector-open' : ''}${isDetailOpen ? ' detail-open' : ''}`}>
@@ -119,7 +129,7 @@ const BandInstrumentSelector: React.FC<BandInstrumentSelectorProps> = ({
           <button
             type="button"
             className={`band-slot-musician-card${column.rarityClass ? ` rarity-${column.rarityClass}` : ''}`}
-            onClick={() => onOpenInstrument(column.id)}
+            onClick={() => handleOpenInstrument(column.id, column.musicianId)}
           >
             <div
               key={`${column.id}-${column.musicianId ?? 'empty'}`}
