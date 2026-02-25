@@ -16,27 +16,42 @@ const iconFameWhite = new URL('../rsc/images/icons/fama_borda_branca.png', impor
 const iconFansWhite = new URL('../rsc/images/icons/Fans_borda_branca.png', import.meta.url).href;
 
 const bandLogoFileNames = [
-  '025feaed-e277-49d5-9e41-d9854b231117.png',
-  '0fe6a3b1-acf8-44c8-9640-63d0f50c2d2d.png',
-  '1b94c8ea-f654-4c33-aaa2-f00d7bfb4f13.png',
-  '2d339497-2a32-4531-b7e5-2ced49172479.png',
-  '3d143e23-d479-4947-a1a4-ff8bdcf16816.png',
-  '458d65ba-1481-41a9-9ebb-735506b34bfa.png',
-  '5fd4d17b-9705-46a7-b9aa-371bff4078a7.png',
-  '66e64664-68e7-4a16-9f60-d3b975d08316.png',
-  '7fdc0086-c9cd-4d40-8dc8-a5e27e7124bf.png',
-  '88bbd4d6-799f-4d58-bf99-db78bbde6ecb.png',
-  'c4ad46a6-6dd4-4d15-803a-1590cc880309.png',
-  'c4e0048b-047b-445e-ab63-632170f65562.png',
-  'cb21ce1d-93c4-43de-83ea-5ba5ba1b3687.png',
-  'd892b2ef-2687-4b22-b72e-a99e49fa73b5.png',
-  'df8e468c-85c8-489f-a137-4bffb06c3516.png',
-  'e0493d8c-b723-460c-94d3-23062f8f9809.png',
-  'e5b4ebe6-ef44-4193-92ac-0b3513eba3f1.png',
-  'e914537b-a0b0-4331-a0e9-449511862bf2.png',
-  'efca84c0-6f55-47e7-a03a-98b62df23fe5.png',
-  'f3fa3a26-cdc6-456a-a6ad-cf66d4ff4c6a.png',
-  'fa0a8eba-2560-4781-8b99-0b1ab4e5e1d6.png',
+  'logo_1.png',
+  'logo_2.png',
+  'logo_3.png',
+  'logo_4.png',
+  'logo_5.png',
+  'logo_6.png',
+  'logo_7.png',
+  'logo_8.png',
+  'logo_9.png',
+  'logo_10.png',
+  'logo_11.png',
+  'logo_12.png',
+  'logo_13.png',
+  'logo_14.png',
+  'logo_15.png',
+  'logo_16.png',
+  'logo_17.png',
+  'logo_18.png',
+  'logo_19.png',
+  'logo_20.png',
+  'logo_21.png',
+  'logo_22.png',
+  'logo_23.png',
+  'logo_24.png',
+  'logo_25.png',
+  'logo_26.png',
+  'logo_27.png',
+  'logo_28.png',
+  'logo_29.png',
+  'logo_30.png',
+  'logo_31.png',
+  'logo_32.png',
+  'logo_33.png',
+  'logo_34.png',
+  'logo_35.png',
+  'logo_36.png',
 ];
 
 const logoAssetMap = import.meta.glob('../rsc/images/logos_banda/*.png', {
@@ -298,30 +313,25 @@ const BandHub: React.FC<BandHubProps> = ({ onStartGame, isMusicEnabled, onToggle
               <h2>Escolha a logo da sua banda</h2>
               <p>Toque para selecionar.</p>
 
-              {creation.selectedLogoUrl && (
-                <div className="selected-logo-preview">
-                  <span>Selecionada</span>
-                  <img src={creation.selectedLogoUrl} alt="Logo selecionada" />
+              <div className="logo-gallery-scroll">
+                <div className="logo-grid compact-logo-grid">
+                  {logoOptions.map((logo) => {
+                    const selected = creation.selectedLogoUrl === logo.url;
+
+                    return (
+                      <motion.button
+                        key={logo.id}
+                        type="button"
+                        className={`logo-choice ${selected ? 'selected' : ''}`}
+                        onClick={() => setCreationLogo(logo.url)}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <img src={logo.url} alt={`Logo ${logo.id}`} />
+                        {selected && <FaCheckCircle className="selected-icon" />}
+                      </motion.button>
+                    );
+                  })}
                 </div>
-              )}
-
-              <div className="logo-grid compact-logo-grid">
-                {logoOptions.map((logo) => {
-                  const selected = creation.selectedLogoUrl === logo.url;
-
-                  return (
-                    <motion.button
-                      key={logo.id}
-                      type="button"
-                      className={`logo-choice ${selected ? 'selected' : ''}`}
-                      onClick={() => setCreationLogo(logo.url)}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <img src={logo.url} alt={`Logo ${logo.id}`} />
-                      {selected && <FaCheckCircle className="selected-icon" />}
-                    </motion.button>
-                  );
-                })}
               </div>
             </div>
           </div>

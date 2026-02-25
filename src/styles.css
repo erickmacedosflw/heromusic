@@ -455,6 +455,9 @@ input {
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .sofia-full {
@@ -591,10 +594,14 @@ input {
   border-radius: 16px;
   padding: 16px;
   backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .creation-content {
-  width: min(920px, 100%);
+  width: min(820px, 100%);
+  max-width: 100%;
   margin: 0 auto;
   display: grid;
   align-content: start;
@@ -710,18 +717,37 @@ input {
 }
 
 .compact-logo-grid {
+  margin-top: 0;
+  grid-template-columns: none;
+  grid-template-rows: repeat(4, 84px);
+  grid-auto-flow: column;
+  grid-auto-columns: 84px;
+  gap: 8px;
+  width: max-content;
+  max-height: calc((84px * 4) + (8px * 3));
+  overflow: visible;
+  padding: 2px;
+}
+
+.logo-gallery-scroll {
   margin-top: 8px;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  max-height: none;
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
 }
 
 .logo-choice {
-  border: 2px solid rgba(255, 255, 255, 0.44);
+  border: 2px solid transparent;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.62);
-  padding: 4px;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
   position: relative;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -735,7 +761,7 @@ input {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .selected-icon {
@@ -1369,8 +1395,12 @@ input {
 
 
   .compact-logo-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 5px;
+    grid-template-columns: none;
+    grid-template-rows: repeat(4, 76px);
+    grid-auto-flow: column;
+    grid-auto-columns: 76px;
+    gap: 6px;
+    max-height: calc((76px * 4) + (6px * 3));
   }
 
   .setup-panel h2 {
