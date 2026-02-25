@@ -56,6 +56,7 @@ import {
   backgroundBackstage,
   defaultStageFloorTexture,
   iconAudioOn,
+  iconCamera,
   iconBloqueado,
   iconCache,
   iconConfigBlack,
@@ -158,8 +159,10 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const isMusicEnabled = useGameStore((state) => state.audioSettings.musicEnabled);
   const isSfxEnabled = useGameStore((state) => state.audioSettings.sfxEnabled);
   const instrumentVolumes = useGameStore((state) => state.audioSettings.instrumentVolumes);
+  const isCameraMotionEnabled = useGameStore((state) => state.cameraMotionEnabled);
   const setMusicEnabled = useGameStore((state) => state.setMusicEnabled);
   const setSfxEnabled = useGameStore((state) => state.setSfxEnabled);
+  const setCameraMotionEnabled = useGameStore((state) => state.setCameraMotionEnabled);
   const setInstrumentVolume = useGameStore((state) => state.setInstrumentVolume);
   const [hireFilter, setHireFilter] = useState<HireFilter>('all');
   const [rhythmMeter, setRhythmMeter] = useState(0);
@@ -1569,6 +1572,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
             isMusicPlaying={isMusicPlaying}
             activeMusicians={stage3DActiveMusicians}
             activeMusiciansSignature={stage3DActiveMusiciansSignature}
+            isCameraMotionEnabled={isCameraMotionEnabled}
           />
           <StageVisualEffectsLayer
             tapEffects={tapEffects}
@@ -1700,14 +1704,17 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         bandLogoUrl={activeBand.logoUrl}
         isSfxEnabled={isSfxEnabled}
         isMusicEnabled={isMusicEnabled}
+        isCameraMotionEnabled={isCameraMotionEnabled}
         iconConfig={iconConfigWhite}
         iconFechar={iconFechar}
         iconAudioOn={iconAudioOn}
+        iconCamera={iconCamera}
         iconExitBand={iconExitBand}
         instrumentVolumeControls={instrumentVolumeControls}
         onClose={closeBandConfig}
         onToggleSfx={setSfxEnabled}
         onToggleMusic={setMusicEnabled}
+        onToggleCameraMotion={setCameraMotionEnabled}
         onChangeInstrumentVolume={setInstrumentVolume}
         onExitBand={() => {
           closeBandConfig();

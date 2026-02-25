@@ -42,6 +42,7 @@ export const iconBaixoVazio = new URL('../rsc/images/icons/Icone_baixo_vazio.png
 export const iconBateriaVazio = new URL('../rsc/images/icons/Icone_bateria_vazio.png', import.meta.url).href;
 export const iconTecladoVazio = new URL('../rsc/images/icons/Icone_teclado_vazio.png', import.meta.url).href;
 export const iconAudioOn = new URL('../rsc/images/icons/Icone_Audio_Ligado.png', import.meta.url).href;
+export const iconCamera = new URL('../rsc/images/icons/Icone_camera.png', import.meta.url).href;
 export const sfxMoneyReward = new URL('../rsc/audios/Dinheiro_Entrando_2.mp3', import.meta.url).href;
 export const sfxCrowdApplause = new URL('../rsc/audios/Aplausos.mp3', import.meta.url).href;
 export const sfxPurchased = new URL('../rsc/audios/Comprado.mp3', import.meta.url).href;

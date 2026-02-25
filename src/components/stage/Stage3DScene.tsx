@@ -20,6 +20,7 @@ type Stage3DSceneProps = {
   isMusicPlaying: boolean;
   activeMusicians: StageMusicianSprite[];
   activeMusiciansSignature?: string;
+  isCameraMotionEnabled: boolean;
 };
 
 const baseCameraPosition = new THREE.Vector3(0, 5.25, 14.45);
@@ -151,11 +152,13 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   isMusicPlaying,
   activeMusicians,
   activeMusiciansSignature,
+  isCameraMotionEnabled,
 }) => {
   const isMobile = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isMusicPlayingRef = useRef(isMusicPlaying);
   const activeMusiciansRef = useRef(activeMusicians);
+  const isCameraMotionEnabledRef = useRef(isCameraMotionEnabled);
 
   const currentFocusedInstrumentRef = useRef<StagePerformerInstrument | null>(null);
   const shotQueueRef = useRef<CameraShot[]>([]);
@@ -185,6 +188,10 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   useEffect(() => {
     activeMusiciansRef.current = activeMusicians;
   }, [activeMusicians]);
+
+  useEffect(() => {
+    isCameraMotionEnabledRef.current = isCameraMotionEnabled;
+  }, [isCameraMotionEnabled]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -536,7 +543,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const clock = new THREE.Clock();
     let animationFrameId = 0;
-    const targetFps = isMobile ? 30 : 60;
+    const targetFps = isMobile ? 45 : 60;
     let lastFrameTime = 0;
     const cameraTarget = new THREE.Vector3();
     const lookAtTarget = new THREE.Vector3();
@@ -598,6 +605,22 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       frontKeyLight.position.z = 9.1 + Math.sin(elapsed * (playing ? 0.54 : 0.18)) * 0.48;
       frontKeyLight.target.position.set(frontKeyLight.position.x * 0.18, 1.1, -1.6);
       frontKeyLight.target.updateMatrixWorld();
+
+      if (!isCameraMotionEnabledRef.current) {
+        camera.position.copy(generalShot.pos);
+        currentLookRef.current.copy(generalShot.look);
+        camera.up.set(0, 1, 0);
+        camera.lookAt(currentLookRef.current);
+        camera.fov = generalShot.fov;
+        camera.updateProjectionMatrix();
+        backgroundParallaxTarget.set(0, 0);
+        backgroundParallaxCurrent.set(0, 0);
+        updateBackgroundPlaneScale();
+        renderer.render(scene, camera);
+        animationFrameId = window.requestAnimationFrame(animate);
+        wasMusicPlayingRef.current = playing;
+        return;
+      }
 
       if (!playing) {
         if (wasMusicPlayingRef.current || currentShotRef.current.instrument !== null) {

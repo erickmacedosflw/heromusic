@@ -16,14 +16,17 @@ type BandConfigModalProps = {
   bandLogoUrl: string;
   isSfxEnabled: boolean;
   isMusicEnabled: boolean;
+  isCameraMotionEnabled: boolean;
   iconConfig: string;
   iconFechar: string;
   iconAudioOn: string;
+  iconCamera: string;
   iconExitBand: string;
   instrumentVolumeControls: InstrumentVolumeControl[];
   onClose: () => void;
   onToggleSfx: (enabled: boolean) => void;
   onToggleMusic: (enabled: boolean) => void;
+  onToggleCameraMotion: (enabled: boolean) => void;
   onChangeInstrumentVolume: (instrument: Instrument, value: number) => void;
   onExitBand: () => void;
 };
@@ -35,14 +38,17 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
   bandLogoUrl,
   isSfxEnabled,
   isMusicEnabled,
+  isCameraMotionEnabled,
   iconConfig,
   iconFechar,
   iconAudioOn,
+  iconCamera,
   iconExitBand,
   instrumentVolumeControls,
   onClose,
   onToggleSfx,
   onToggleMusic,
+  onToggleCameraMotion,
   onChangeInstrumentVolume,
   onExitBand,
 }) => {
@@ -83,6 +89,18 @@ const BandConfigModal: React.FC<BandConfigModalProps> = ({
           <label className="band-config-option">
             <input type="checkbox" checked={isMusicEnabled} onChange={(event) => onToggleMusic(event.target.checked)} />
             <span>Música</span>
+          </label>
+          <div className="band-config-audio-title">
+            <img src={iconCamera} alt="" aria-hidden="true" />
+            <span>Câmera</span>
+          </div>
+          <label className="band-config-option">
+            <input
+              type="checkbox"
+              checked={isCameraMotionEnabled}
+              onChange={(event) => onToggleCameraMotion(event.target.checked)}
+            />
+            <span>Movimento de câmera</span>
           </label>
           <div className="band-config-instrument-volumes">
             {instrumentVolumeControls.map((control) => {

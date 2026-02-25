@@ -46,6 +46,7 @@ interface GameState {
   currentStageId: number;
   creation: CreationState;
   audioSettings: AudioSettings;
+  cameraMotionEnabled: boolean;
   showPerformance: boolean;
   score: number;
   combo: number;
@@ -59,6 +60,7 @@ interface GameState {
   setMusicEnabled: (enabled: boolean) => void;
   setSfxEnabled: (enabled: boolean) => void;
   setInstrumentVolume: (instrument: Instrument, volume: number) => void;
+  setCameraMotionEnabled: (enabled: boolean) => void;
   createBandFromDraft: () => void;
   selectBand: (bandId: string) => void;
   setCurrentStage: (stageId: number) => void;
@@ -116,6 +118,7 @@ export const useGameStore = create<GameState>()(
       currentStageId: 1,
       creation: getDefaultCreation(),
       audioSettings: getDefaultAudioSettings(),
+      cameraMotionEnabled: true,
       showPerformance: false,
       score: 0,
       combo: 0,
@@ -167,6 +170,7 @@ export const useGameStore = create<GameState>()(
             sfxEnabled: enabled,
           },
         })),
+      setCameraMotionEnabled: (enabled) => set({ cameraMotionEnabled: enabled }),
       setInstrumentVolume: (instrument, volume) =>
         set((state) => ({
           audioSettings: {
