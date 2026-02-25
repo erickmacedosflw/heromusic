@@ -38,6 +38,8 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        // Só toca a música tema se estiver no menu principal (BandHub),
+        // e não ao abrir o modal de músicos dentro do jogo.
         const shouldPlayTheme = currentScene === 'menu' && isMusicEnabled;
 
         if (shouldPlayTheme) {
@@ -46,7 +48,9 @@ const App: React.FC = () => {
             return cleanupUnlock;
         }
 
-        if (!isMusicEnabled || currentScene === 'boot') {
+        // Corrigido: não pausar a música tema ao abrir modais dentro do jogo,
+        // apenas ao sair do menu principal ou desabilitar música.
+        if (!isMusicEnabled || currentScene !== 'menu') {
             pauseThemeMusic();
         }
     }, [currentScene, isMusicEnabled]);

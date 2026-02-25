@@ -466,29 +466,32 @@
 }
 
 .musician-hero-hire-btn {
-  min-height: 34px;
-  border-radius: 10px;
+  min-height: 46px;
+  border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.96);
   background: rgba(37, 164, 79, 0.98);
   color: #fff;
-  padding: 6px 10px;
+  padding: 10px 16px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.66rem;
+  gap: 10px;
+  font-size: 0.86rem;
   font-weight: 900;
-  box-shadow: 0 8px 16px rgba(14, 82, 36, 0.34);
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 18px rgba(14, 82, 36, 0.32);
+  transition: transform 150ms ease, box-shadow 170ms ease, background 160ms ease;
   animation: heroHireBtnIn 240ms ease-out, heroHireBtnPulse 1800ms ease-in-out 260ms infinite;
 }
 
 .musician-hero-hire-btn img {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 
 .musician-hero-hire-btn:active {
-  transform: scale(0.97);
+  transform: translateY(1px) scale(0.97);
+  box-shadow: 0 6px 14px rgba(14, 82, 36, 0.28);
 }
 
 .musician-hero-hire-btn.is-select {
@@ -929,23 +932,25 @@
   position: absolute;
   right: -12px;
   bottom: -12px;
-  min-height: 34px;
-  border-radius: 10px;
+  min-height: 46px;
+  border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.96);
   background: rgba(37, 164, 79, 0.98);
   color: #fff;
-  padding: 6px 10px;
+  padding: 10px 16px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.66rem;
+  gap: 10px;
+  font-size: 0.86rem;
   font-weight: 900;
-  box-shadow: 0 8px 16px rgba(14, 82, 36, 0.34);
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 18px rgba(14, 82, 36, 0.32);
+  transition: transform 150ms ease, box-shadow 170ms ease, background 160ms ease;
 }
 
 .musician-detail-hire-btn img {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 
@@ -954,6 +959,11 @@
   box-shadow: none;
   cursor: not-allowed;
   opacity: 1;
+}
+
+.musician-detail-hire-btn:active,
+.musician-hero-hire-btn:active {
+  background: rgba(33, 148, 71, 0.98);
 }
 
 @keyframes musicianStoryFadeIn {
@@ -1088,6 +1098,11 @@
   align-content: start;
   gap: 8px;
   overflow: auto;
+  min-height: 0;
+  height: 100%;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding-right: 2px;
 }
 
@@ -1177,7 +1192,8 @@
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   position: relative;
-  transition: transform 160ms ease, box-shadow 190ms ease, filter 190ms ease;
+  transition: transform 180ms ease, box-shadow 200ms ease, filter 190ms ease, opacity 180ms ease;
+  will-change: transform, opacity, filter;
 }
 
 .musician-contract-card > * {
@@ -1212,10 +1228,17 @@
 
 .musician-contract-card.is-hired {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 4px 11px rgba(0, 0, 0, 0.14);
+  animation: musicianCardEnterHired 240ms cubic-bezier(0.2, 0.8, 0.22, 1);
+}
+
+.musician-contract-card.just-hired {
+  animation: musicianCardMoveToHired 360ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  filter: saturate(1.08);
 }
 
 .musician-contract-card.is-available {
   border-color: rgba(0, 0, 0, 0.08);
+  animation: musicianCardEnterAvailable 220ms cubic-bezier(0.2, 0.8, 0.22, 1);
 }
 
 .musician-contract-card.is-available-to-buy {
@@ -1236,6 +1259,43 @@
   background: rgba(10, 12, 16, 0.56);
   z-index: 1;
   pointer-events: none;
+}
+
+@keyframes musicianCardEnterAvailable {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes musicianCardEnterHired {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes musicianCardMoveToHired {
+  0% {
+    opacity: 0.1;
+    transform: translateY(14px) scale(0.96);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .musician-card-top {
@@ -1271,10 +1331,8 @@
   display: block;
   box-shadow: none;
   filter:
-    drop-shadow(-3px 0 4px rgba(0, 0, 0, 0.16))
-    drop-shadow(3px 0 4px rgba(0, 0, 0, 0.16))
-    drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.14))
-    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.07));
+    drop-shadow(0 4px 9px rgba(0, 0, 0, 0.16))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
 }
 
 .musician-avatar-column {

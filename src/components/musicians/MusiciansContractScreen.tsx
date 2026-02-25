@@ -123,12 +123,52 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
     hired: false,
     available: false,
   });
+  const prevHireMapRef = React.useRef<Map<number, boolean>>(new Map());
+  const [recentlyHiredId, setRecentlyHiredId] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let detectedHiredId: number | null = null;
+    const nextMap = new Map<number, boolean>();
+
+    listedMusicianItems.forEach((item) => {
+      const id = item.musician.ID;
+      const wasHired = prevHireMapRef.current.get(id);
+      if (wasHired === false && item.isMusicianHired) {
+        detectedHiredId = id;
+      }
+      nextMap.set(id, item.isMusicianHired);
+    });
+
+    prevHireMapRef.current = nextMap;
+
+    if (detectedHiredId !== null) {
+      setRecentlyHiredId(detectedHiredId);
+      window.setTimeout(() => {
+        setRecentlyHiredId((current) => (current === detectedHiredId ? null : current));
+      }, 650);
+    }
+  }, [listedMusicianItems]);
 
   if (!isVisible) {
     return null;
   }
 
-  const hiredMusicianItems = listedMusicianItems.filter((item) => item.isMusicianHired);
+  const rarityRank = {
+    bronze: 0,
+    silver: 1,
+    gold: 2,
+  } as const;
+
+  const hiredMusicianItems = listedMusicianItems
+    .filter((item) => item.isMusicianHired)
+    .sort((a, b) => {
+      const rarityDiff = rarityRank[a.rarityClass] - rarityRank[b.rarityClass];
+      if (rarityDiff !== 0) {
+        return rarityDiff;
+      }
+      // Keep purchase order: older first (stable by original order)
+      return listedMusicianItems.indexOf(a) - listedMusicianItems.indexOf(b);
+    });
   const availableMusicianItems = listedMusicianItems.filter((item) => !item.isMusicianHired);
 
   const toggleGroup = (group: 'hired' | 'available') => {
@@ -141,7 +181,7 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
   const renderMusicianCard = (item: MusicianListItem) => (
     <article
       key={item.musician.ID}
-      className={`musician-contract-card rarity-${item.rarityClass}${item.isMusicianHired ? ' is-hired' : ' is-available'}${!item.isMusicianHired ? (item.isLockedByCoins ? ' is-locked-by-coins' : ' is-available-to-buy') : ''}`}
+      className={`musician-contract-card rarity-${item.rarityClass}${item.isMusicianHired ? ' is-hired' : ' is-available'}${!item.isMusicianHired ? (item.isLockedByCoins ? ' is-locked-by-coins' : ' is-available-to-buy') : ''}${recentlyHiredId === item.musician.ID ? ' just-hired' : ''}`}
       data-click-sfx="open"
       onClick={() => onOpenMusicianDetails(item.musician)}
     >
