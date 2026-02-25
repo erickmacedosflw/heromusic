@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler';
 
 const themeMusicSrc = new URL('../rsc/musics/Music_background_mapa.mp3', import.meta.url).href;
-const THEME_TARGET_VOLUME = 0.3;
+const THEME_TARGET_VOLUME = 0.25;
 const THEME_FADE_IN_MS = 900;
 const THEME_FADE_OUT_MS = 520;
 const THEME_REVERB_WET = 0.2;

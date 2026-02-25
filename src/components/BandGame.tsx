@@ -372,8 +372,8 @@ const AMBIENCE_FADE_IN_MS = 900;
 const AMBIENCE_FADE_OUT_MS = 520;
 const STAGE_STEM_FADE_IN_MS = 700;
 const STAGE_STEM_FADE_OUT_MS = 420;
-const MAP_AMBIENCE_VOLUME = 0.02;
-const STAGE_AMBIENCE_VOLUME = 0.8;
+const MAP_AMBIENCE_VOLUME = 0.015;
+const STAGE_AMBIENCE_VOLUME = 1;
 const instrumentIconByInstrument: Record<Instrument, string> = {
   guitar: iconGuitarra,
   drums: iconBateria,
