@@ -65,7 +65,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   const introHoldTimeoutRef = React.useRef<number | null>(null);
   const introHideTimeoutRef = React.useRef<number | null>(null);
   const lastIntroPlayIdRef = React.useRef<number | null>(null);
-  const [introPhase, setIntroPhase] = React.useState<'hidden' | 'show' | 'leaving'>('hidden');
+  const [introPhase, setIntroPhase] = React.useState<'hidden' | 'show' | 'leaving'>(() =>
+    isVisible && introImageUrl && introPlayId && introPlayId > 0 ? 'show' : 'hidden',
+  );
 
   const getClampedScrollPosition = React.useCallback((
     scrollContainer: HTMLDivElement,

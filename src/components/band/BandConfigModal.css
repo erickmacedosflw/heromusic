@@ -10,7 +10,7 @@
   border: 2px solid rgba(255, 255, 255, 0.96);
   border-radius: 14px;
   box-shadow: 0 20px 38px rgba(0, 0, 0, 0.42), 0 6px 14px rgba(0, 0, 0, 0.24);
-  z-index: 321;
+  z-index: 520;
   color: #141414;
   overflow: hidden;
   backdrop-filter: blur(4px);
@@ -22,7 +22,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.52);
-  z-index: 320;
+  z-index: 519;
   pointer-events: auto;
 }
 
