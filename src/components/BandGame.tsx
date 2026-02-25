@@ -2330,32 +2330,33 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         currentStageId={currentStageId}
         isEmbedded
         onStageTransitionStart={() => {
-          setIsSideMenuHiding(true);
+            // Trigger menu hide animation, keep menu hidden for duration of map zoom (STAGE_SELECT_TRANSITION_MS)
+            setIsSideMenuHiding(true);
         }}
         onClose={() => undefined}
         onSelectStage={(stageId) => {
           setCurrentStage(stageId);
           setIsStageShowActive(true);
-          setIsSideMenuHiding(false);
+            // Menu stays hidden until returning to map after show ends
         }}
       />
 
-      {!isStageShowActive && activeScreen !== 'musicians' && !isBandManagementScreenVisible ? (
-      <StageBottomNav
-        variant="side"
-        isHiding={isSideMenuHiding}
-        isBandManagementScreenVisible={isBandManagementScreenVisible}
-        availableToHireCount={availableToHireCount}
-        navBand={navBand}
-        navHire={navHire}
-        navStore={navStore}
-        navStage={navStage}
-        navSongs={navSongs}
-        onOpenBandManagementScreen={openBandManagementScreen}
-        onOpenMusiciansScreen={openMusiciansScreen}
-        onCycleStage={() => undefined}
-      />
-      ) : null}
+      {!isStageShowActive && activeScreen !== 'musicians' && !isBandManagementScreenVisible && (
+        <StageBottomNav
+          variant="side"
+          isHiding={isSideMenuHiding}
+          isBandManagementScreenVisible={isBandManagementScreenVisible}
+          availableToHireCount={availableToHireCount}
+          navBand={navBand}
+          navHire={navHire}
+          navStore={navStore}
+          navStage={navStage}
+          navSongs={navSongs}
+          onOpenBandManagementScreen={openBandManagementScreen}
+          onOpenMusiciansScreen={openMusiciansScreen}
+          onCycleStage={() => undefined}
+        />
+      )}
 
       <div
         className={`stage-map-return-overlay${mapReturnTransitionPhase !== 'idle' ? ' active' : ''}${mapReturnTransitionPhase === 'to-black' ? ' to-black' : ''}${mapReturnTransitionPhase === 'from-black' ? ' from-black' : ''}`}

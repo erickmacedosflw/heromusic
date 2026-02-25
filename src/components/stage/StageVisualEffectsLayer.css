@@ -8,7 +8,7 @@
 .reward-fly-layer {
   position: absolute;
   inset: 0;
-  z-index: 260;
+  z-index: 420;
   pointer-events: none;
 }
 

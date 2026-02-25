@@ -23,6 +23,7 @@ const STAGE_SELECT_TRANSITION_MS = 3000;
 const STAGE_MAP_CLOSE_FADE_MS = 620;
 const STAGE_BLACKOUT_START_PROGRESS = 0.68;
 const STAGE_SELECT_ZOOM_MULTIPLIER = 1.75;
+const STAGE_SELECT_FINAL_BLACK_HOLD_MS = 120;
 const TOUCH_SCROLL_DAMPING = 0.52;
 
 const StageMapModal: React.FC<StageMapModalProps> = ({
@@ -351,7 +352,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
         if (!isEmbedded) {
           onClose();
         }
-      }, 0);
+      }, STAGE_SELECT_FINAL_BLACK_HOLD_MS);
     };
 
     transitionFrameRef.current = window.requestAnimationFrame(animate);

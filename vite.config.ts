@@ -44,9 +44,36 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // Keep precache lean (app shell + light assets). Heavy media handled via runtime caching.
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,woff,woff2}'],
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'image-cache-v1',
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+              },
+            },
+          },
+          {
+            urlPattern: ({ request, url }) => request.destination === 'video' || url.pathname.endsWith('.mp4') || url.pathname.endsWith('.webm'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'video-cache-v1',
+              cacheableResponse: {
+                statuses: [200, 206],
+              },
+              rangeRequests: true,
+              expiration: {
+                maxEntries: 8,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+            },
+          },
           {
             urlPattern: ({ request, url }) => request.destination === 'audio' || url.pathname.endsWith('.mp3'),
             handler: 'CacheFirst',
@@ -58,6 +85,17 @@ export default defineConfig({
               rangeRequests: true,
               expiration: {
                 maxEntries: 40,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'font',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'font-cache-v1',
+              expiration: {
+                maxEntries: 20,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
               },
             },
