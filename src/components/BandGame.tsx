@@ -17,7 +17,7 @@ import palcosData from '../locals/palcos.json';
 import musicsData from '../locals/musics.json';
 import musicosData from '../locals/musicos.json';
 import { playUiClickSound } from '../utils/clickAudio';
-import { pauseThemeMusic } from '../utils/themeAudio';
+import { pauseThemeMusic, playThemeMusic } from '../utils/themeAudio';
 
 const instrumentLabels: Record<Instrument, string> = {
   guitar: 'Guitarra',
@@ -372,8 +372,8 @@ const AMBIENCE_FADE_IN_MS = 900;
 const AMBIENCE_FADE_OUT_MS = 520;
 const STAGE_STEM_FADE_IN_MS = 700;
 const STAGE_STEM_FADE_OUT_MS = 420;
-const MAP_AMBIENCE_VOLUME = 0.005;
-const STAGE_AMBIENCE_VOLUME = 0.48;
+const MAP_AMBIENCE_VOLUME = 0.01;
+const STAGE_AMBIENCE_VOLUME = 0.55;
 const instrumentIconByInstrument: Record<Instrument, string> = {
   guitar: iconGuitarra,
   drums: iconBateria,
@@ -772,8 +772,15 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [instrumentVolumes]);
 
   useEffect(() => {
-    pauseThemeMusic();
-  }, []);
+    const shouldPlayMapTheme = isMusicEnabled && !isStageShowActive && mapReturnTransitionPhase !== 'to-black';
+
+    if (!shouldPlayMapTheme) {
+      pauseThemeMusic();
+      return;
+    }
+
+    playThemeMusic();
+  }, [isMusicEnabled, isStageShowActive, mapReturnTransitionPhase]);
 
   const getStageAudios = () =>
     Object.values(stageStemAudiosRef.current).filter((audio): audio is Howl => Boolean(audio));
@@ -1479,6 +1486,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
   useEffect(() => {
     const isAmbienceEnabled = isMusicEnabled && isSfxEnabled;
+    const isMapMenuModalOpen = isMusiciansScreenVisible || isBandManagementScreenVisible || isBandConfigVisible;
 
     if (isStageShowActive) {
       stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
@@ -1491,12 +1499,12 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     }
 
     stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
-    if (isAmbienceEnabled) {
+    if (isAmbienceEnabled && !isMapMenuModalOpen) {
       playAmbienceWithFade(mapAmbienceHowlRef.current, MAP_AMBIENCE_VOLUME, mapAmbienceFadeTimeoutRef);
     } else {
       stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
     }
-  }, [isStageShowActive, isMusicEnabled, isSfxEnabled]);
+  }, [isStageShowActive, isMusicEnabled, isSfxEnabled, isMusiciansScreenVisible, isBandManagementScreenVisible, isBandConfigVisible]);
 
   useEffect(() => {
     pauseStageAudios();
