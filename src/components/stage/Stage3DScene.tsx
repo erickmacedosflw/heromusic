@@ -152,6 +152,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
   activeMusicians,
   activeMusiciansSignature,
 }) => {
+  const isMobile = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isMusicPlayingRef = useRef(isMusicPlaying);
   const activeMusiciansRef = useRef(activeMusicians);
@@ -192,14 +193,14 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     }
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !isMobile,
       alpha: true,
       premultipliedAlpha: false,
-      powerPreference: 'high-performance',
+      powerPreference: isMobile ? 'low-power' : 'high-performance',
     });
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = !isMobile;
+    renderer.shadowMap.type = isMobile ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 2));
     renderer.setClearColor(0x000000, 0);
     renderer.setClearAlpha(0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -342,11 +343,11 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const frontKeyLight = new THREE.SpotLight(0xfff3de, 2.42, 40, Math.PI * 0.24, 0.32, 1.05);
     frontKeyLight.position.set(0, 7.1, 9.3);
-    frontKeyLight.castShadow = true;
-    frontKeyLight.shadow.mapSize.width = 1024;
-    frontKeyLight.shadow.mapSize.height = 1024;
+    frontKeyLight.castShadow = !isMobile;
+    frontKeyLight.shadow.mapSize.width = isMobile ? 512 : 1024;
+    frontKeyLight.shadow.mapSize.height = isMobile ? 512 : 1024;
     frontKeyLight.shadow.bias = -0.00015;
-    frontKeyLight.shadow.radius = 4;
+    frontKeyLight.shadow.radius = isMobile ? 1.5 : 4;
     scene.add(frontKeyLight);
     scene.add(frontKeyLight.target);
 
@@ -366,7 +367,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     floorTexture.wrapS = THREE.RepeatWrapping;
     floorTexture.wrapT = THREE.RepeatWrapping;
     floorTexture.repeat.set(8, 8);
-    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    floorTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), isMobile ? 4 : 8);
 
     const floorMaterial = new THREE.MeshStandardMaterial({
       map: floorTexture,
@@ -488,23 +489,31 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       scene.add(standIn);
     });
 
-    const composerRenderTarget = new THREE.WebGLRenderTarget(1, 1, {
-      format: THREE.RGBAFormat,
-      depthBuffer: true,
-      stencilBuffer: false,
-    });
+    const composerRenderTarget = !isMobile
+      ? new THREE.WebGLRenderTarget(1, 1, {
+          format: THREE.RGBAFormat,
+          depthBuffer: true,
+          stencilBuffer: false,
+        })
+      : null;
 
-    const composer = new EffectComposer(renderer, composerRenderTarget);
-    const renderPass = new RenderPass(scene, camera);
-    renderPass.clear = true;
-    renderPass.clearAlpha = 0;
-    composer.addPass(renderPass);
-    const bokehPass = new BokehPass(scene, camera, {
-      focus: 8,
-      aperture: 0.000004,
-      maxblur: 0.00035,
-    });
-    composer.addPass(bokehPass);
+    const composer = composerRenderTarget ? new EffectComposer(renderer, composerRenderTarget) : null;
+    const renderPass = composer ? new RenderPass(scene, camera) : null;
+    if (composer && renderPass) {
+      renderPass.clear = true;
+      renderPass.clearAlpha = 0;
+      composer.addPass(renderPass);
+    }
+    const bokehPass = composer
+      ? new BokehPass(scene, camera, {
+          focus: 8,
+          aperture: 0.000004,
+          maxblur: 0.00035,
+        })
+      : null;
+    if (composer && bokehPass) {
+      composer.addPass(bokehPass);
+    }
 
     const resize = () => {
       const { clientWidth, clientHeight } = container;
@@ -513,7 +522,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       }
 
       renderer.setSize(clientWidth, clientHeight, false);
-      composer.setSize(clientWidth, clientHeight);
+      if (composer) {
+        composer.setSize(clientWidth, clientHeight);
+      }
       camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
       updateBackgroundPlaneScale();
@@ -525,6 +536,8 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const clock = new THREE.Clock();
     let animationFrameId = 0;
+    const targetFps = isMobile ? 30 : 60;
+    let lastFrameTime = 0;
     const cameraTarget = new THREE.Vector3();
     const lookAtTarget = new THREE.Vector3();
 
@@ -571,6 +584,12 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     };
 
     const animate = () => {
+      const now = performance.now();
+      if (now - lastFrameTime < 1000 / targetFps) {
+        animationFrameId = window.requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTime = now;
       const elapsed = clock.getElapsedTime();
       const playing = isMusicPlayingRef.current;
 
@@ -744,13 +763,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       backgroundParallaxCurrent.lerp(backgroundParallaxTarget, 0.045);
       updateBackgroundPlaneScale();
 
-      const focusDistance = Math.max(1.2, Math.min(16, camera.position.distanceTo(currentLookRef.current)));
-      const closeStrengthRaw = isCloseShot ? 1 - (focusDistance - 2.3) / 5.8 : 0;
-      const closeStrength = Math.max(0, Math.min(1, closeStrengthRaw));
-      bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
-      const smoothClose = closeStrength * closeStrength * (3 - 2 * closeStrength);
-      bokehPass.materialBokeh.uniforms.aperture.value = 0.0000013 + smoothClose * 0.0000022;
-      bokehPass.materialBokeh.uniforms.maxblur.value = 0.00008 + smoothClose * 0.00018;
+      if (bokehPass) {
+        const focusDistance = Math.max(1.2, Math.min(16, camera.position.distanceTo(currentLookRef.current)));
+        const closeStrengthRaw = isCloseShot ? 1 - (focusDistance - 2.3) / 5.8 : 0;
+        const closeStrength = Math.max(0, Math.min(1, closeStrengthRaw));
+        bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
+        const smoothClose = closeStrength * closeStrength * (3 - 2 * closeStrength);
+        bokehPass.materialBokeh.uniforms.aperture.value = 0.0000013 + smoothClose * 0.0000022;
+        bokehPass.materialBokeh.uniforms.maxblur.value = 0.00008 + smoothClose * 0.00018;
+      }
 
       if (elapsed - lastShadowFrameSentAtRef.current > 0.06) {
         lastShadowFrameSentAtRef.current = elapsed;
@@ -764,12 +785,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         });
       }
 
-      const allowBokeh = false;
-      if (allowBokeh) {
-        composer.render();
-      } else {
-        renderer.render(scene, camera);
-      }
+      renderer.render(scene, camera);
       animationFrameId = window.requestAnimationFrame(animate);
       wasMusicPlayingRef.current = playing;
     };
@@ -806,8 +822,8 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       setFocusedInstrument(null);
       currentShotRef.current = generalShot;
 
-      composer.dispose();
-      composerRenderTarget.dispose();
+      composer?.dispose();
+      composerRenderTarget?.dispose();
       if (sceneBackgroundVideoElement) {
         sceneBackgroundVideoElement.pause();
         sceneBackgroundVideoElement.src = '';

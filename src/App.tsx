@@ -43,15 +43,18 @@ const App: React.FC = () => {
         const shouldPlayTheme = currentScene === 'menu' && isMusicEnabled;
 
         if (shouldPlayTheme) {
-            playThemeMusic();
-            const cleanupUnlock = setupThemeMusicUnlock(() => sceneRef.current === 'menu' && musicEnabledRef.current);
+            playThemeMusic('menu');
+            const cleanupUnlock = setupThemeMusicUnlock(
+                () => sceneRef.current === 'menu' && musicEnabledRef.current,
+                'menu'
+            );
             return cleanupUnlock;
         }
 
         // Corrigido: não pausar a música tema ao abrir modais dentro do jogo,
         // apenas ao sair do menu principal ou desabilitar música.
         if (!isMusicEnabled || currentScene !== 'menu') {
-            pauseThemeMusic();
+            pauseThemeMusic('menu');
         }
     }, [currentScene, isMusicEnabled]);
 
@@ -70,7 +73,7 @@ const App: React.FC = () => {
                 return;
             }
 
-            playThemeMusic();
+            playThemeMusic('menu');
         };
 
         const handleVisibilityChange = () => {
@@ -101,7 +104,7 @@ const App: React.FC = () => {
             }
 
             if (shouldPlayTheme) {
-                playThemeMusic();
+                playThemeMusic('menu');
                 return;
             }
 

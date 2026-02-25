@@ -330,11 +330,11 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const shouldPlayMapTheme = isMusicEnabled && !isStageShowActive && mapReturnTransitionPhase !== 'to-black';
 
     if (!shouldPlayMapTheme) {
-      pauseThemeMusic();
+      pauseThemeMusic('map');
       return;
     }
 
-    playThemeMusic();
+    playThemeMusic('map');
   }, [isMusicEnabled, isStageShowActive, mapReturnTransitionPhase]);
 
   const getStageAudios = () =>
@@ -928,12 +928,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, []);
 
   useEffect(() => {
-    const isAmbienceEnabled = isMusicEnabled && isSfxEnabled;
     const isMapMenuModalOpen = isMusiciansScreenVisible || isBandManagementScreenVisible || isBandConfigVisible;
+    const shouldPlayMapAmbience =
+      isSfxEnabled && !isStageShowActive && mapReturnTransitionPhase !== 'to-black' && !isMapMenuModalOpen;
+    const shouldPlayStageAmbience = isMusicEnabled && isSfxEnabled && isStageShowActive;
 
     if (isStageShowActive) {
       stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
-      if (isAmbienceEnabled) {
+      if (shouldPlayStageAmbience) {
         playAmbienceWithFade(stageAmbienceHowlRef.current, STAGE_AMBIENCE_VOLUME, stageAmbienceFadeTimeoutRef);
       } else {
         stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
@@ -942,12 +944,20 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     }
 
     stopAmbienceWithFade(stageAmbienceHowlRef.current, stageAmbienceFadeTimeoutRef);
-    if (isAmbienceEnabled && !isMapMenuModalOpen) {
+    if (shouldPlayMapAmbience) {
       playAmbienceWithFade(mapAmbienceHowlRef.current, MAP_AMBIENCE_VOLUME, mapAmbienceFadeTimeoutRef);
     } else {
       stopAmbienceWithFade(mapAmbienceHowlRef.current, mapAmbienceFadeTimeoutRef);
     }
-  }, [isStageShowActive, isMusicEnabled, isSfxEnabled, isMusiciansScreenVisible, isBandManagementScreenVisible, isBandConfigVisible]);
+  }, [
+    isStageShowActive,
+    isMusicEnabled,
+    isSfxEnabled,
+    isMusiciansScreenVisible,
+    isBandManagementScreenVisible,
+    isBandConfigVisible,
+    mapReturnTransitionPhase,
+  ]);
 
   useEffect(() => {
     pauseStageAudios();
