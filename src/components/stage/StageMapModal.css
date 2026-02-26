@@ -228,7 +228,7 @@
 .stage-map-band-quick-access {
   position: fixed;
   left: 12px;
-  bottom: 10px;
+  bottom: 30px;
   z-index: 3;
   pointer-events: none;
   opacity: 1;
@@ -863,7 +863,7 @@
 
   .stage-map-band-quick-access {
     left: 10px;
-    bottom: 8px;
+    bottom: 22px;
   }
 
   .stage-map-preview-card {
