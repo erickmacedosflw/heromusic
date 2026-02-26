@@ -72,25 +72,63 @@ const StageCenterPanel: React.FC<StageCenterPanelProps> = ({
   gainMeterRef,
   wrapperRef,
 }) => {
+  const POPOVER_CLOSE_MS = 180;
+  const popoverCloseTimeoutRef = React.useRef<number | null>(null);
+  const [shouldRenderVenuePopover, setShouldRenderVenuePopover] = React.useState(false);
+  const [isVenuePopoverClosing, setIsVenuePopoverClosing] = React.useState(false);
+  const isVenuePopoverOpen = shouldRenderVenuePopover && !isVenuePopoverClosing;
+
+  const handleVenueBadgeToggle = () => {
+    if (shouldRenderVenuePopover && !isVenuePopoverClosing) {
+      setIsVenuePopoverClosing(true);
+      if (popoverCloseTimeoutRef.current !== null) {
+        window.clearTimeout(popoverCloseTimeoutRef.current);
+      }
+      popoverCloseTimeoutRef.current = window.setTimeout(() => {
+        setShouldRenderVenuePopover(false);
+        setIsVenuePopoverClosing(false);
+        popoverCloseTimeoutRef.current = null;
+      }, POPOVER_CLOSE_MS);
+      return;
+    }
+
+    if (popoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(popoverCloseTimeoutRef.current);
+      popoverCloseTimeoutRef.current = null;
+    }
+    setShouldRenderVenuePopover(true);
+    setIsVenuePopoverClosing(false);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (popoverCloseTimeoutRef.current !== null) {
+        window.clearTimeout(popoverCloseTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="stage-center-panel" ref={wrapperRef}>
-      <div className="venue-card">
-        <div className="venue-layout">
+      <div className="venue-side-entry">
+        <button type="button" className="venue-badge-btn" onClick={handleVenueBadgeToggle} aria-expanded={isVenuePopoverOpen} aria-label="Ver dados do local">
           <img src={venueBadgeIcon} alt="Badge do local" className="venue-badge-icon" />
-          <div className="venue-info">
-            <div className="venue-title-row">
-              <h3>{selectedStageName}</h3>
-              <button type="button" className="venue-exit-btn" onClick={onExitShow} data-click-sfx="close">
-                Voltar ao mapa
-              </button>
-            </div>
+        </button>
+
+        {shouldRenderVenuePopover ? (
+          <div className={`venue-side-popover${isVenuePopoverClosing ? ' is-closing' : ''}`} role="status" aria-live="polite">
+            <h3>{selectedStageName}</h3>
             <div className="venue-meta">
               <span><img src={iconIngresso} alt="Ingresso" className="venue-meta-icon" /> {formatCurrency(stageTicketPrice)}</span>
               <span><img src={iconValorCacheTotal} alt="Valor total da lotação" className="venue-meta-icon" /> {formatCurrency(lotacaoTotalValue)}</span>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
+
+      <button type="button" className="venue-exit-btn" onClick={onExitShow} data-click-sfx="close">
+        Voltar ao mapa
+      </button>
 
       <div className="mini-kpis">
         <div className="kpi-box">

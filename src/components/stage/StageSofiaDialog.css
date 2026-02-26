@@ -1,11 +1,11 @@
 .stage-sofia-dialog {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 9999;
   display: grid;
   justify-items: center;
-  align-items: start;
-  padding: calc(12px + var(--stage-top-overlay-safe, 0px)) 14px 14px;
+  align-items: center;
+  padding: 14px;
 }
 
 .stage-sofia-dialog-backdrop {

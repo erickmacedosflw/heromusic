@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import './StageSofiaDialog.css';
 
 const sofiaPortrait = new URL('../../rsc/images/facesets/Sofia_ZoomFace.png', import.meta.url).href;
@@ -60,7 +61,7 @@ const StageSofiaDialog: React.FC<StageSofiaDialogProps> = ({
     return null;
   }
 
-  return (
+  const dialogNode = (
     <div className={`stage-sofia-dialog${isClosing ? ' is-closing' : ''}`} role="dialog" aria-modal="true" aria-label="Mensagem da Sofia">
       <div className="stage-sofia-dialog-backdrop" />
       <div className="stage-sofia-dialog-card">
@@ -97,6 +98,12 @@ const StageSofiaDialog: React.FC<StageSofiaDialogProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return dialogNode;
+  }
+
+  return createPortal(dialogNode, document.body);
 };
 
 export default StageSofiaDialog;
