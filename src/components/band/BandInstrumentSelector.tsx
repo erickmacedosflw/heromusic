@@ -200,7 +200,7 @@ const BandInstrumentSelector: React.FC<BandInstrumentSelectorProps> = ({
                       <img src={iconMusicoVazio} alt="" aria-hidden="true" />
                     </div>
                   )}
-                  <span className="band-selector-name">{musician.firstName}</span>
+                  <span className="band-selector-name">{musician.name}</span>
                 </button>
               ))}
             </div>
