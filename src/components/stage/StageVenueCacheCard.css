@@ -1,0 +1,96 @@
+.stage-venue-cache-card {
+  position: relative;
+  border-radius: 10px;
+  padding: 4px 6px 6px;
+  border: none;
+  background: transparent;
+}
+
+.stage-venue-cache-center-gain {
+  position: absolute;
+  left: 50%;
+  top: -14px;
+  transform: translateX(-50%);
+  min-width: 98px;
+  min-height: 30px;
+  border-radius: 999px;
+  border: 2px solid rgba(141, 241, 133, 0.95);
+  background: rgba(17, 65, 28, 0.94);
+  color: #c9ffba;
+  font-size: 0.8rem;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  padding: 0 10px;
+  line-height: 1;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.28);
+}
+
+.stage-venue-cache-barline {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.stage-venue-cache-side-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+.stage-venue-cache-values {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stage-venue-cache-values strong {
+  font-size: 0.74rem;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.stage-venue-cache-values .gain {
+  color: #7ff4a5;
+}
+
+.stage-venue-cache-values .cost {
+  color: #ff8c8c;
+}
+
+.stage-venue-cache-track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stage-venue-cache-fill {
+  display: block;
+  height: 100%;
+}
+
+.stage-venue-cache-fill.gain {
+  background: linear-gradient(90deg, rgba(68, 210, 108, 0.92), rgba(130, 255, 170, 0.96));
+}
+
+.stage-venue-cache-fill.cost {
+  background: linear-gradient(90deg, rgba(220, 74, 74, 0.9), rgba(255, 112, 112, 0.95));
+}
+
+.stage-venue-cache-card.is-over-limit .stage-venue-cache-track {
+  box-shadow: 0 0 0 1px rgba(255, 98, 98, 0.22), 0 0 10px rgba(255, 92, 92, 0.2);
+}
+
+@media (max-width: 720px) {
+  .stage-venue-cache-values strong {
+    font-size: 0.68rem;
+  }
+}

@@ -198,7 +198,6 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const stagePlayPendingRef = useRef(false);
   const rhythmMeterRef = useRef(0);
   const hasActiveMusiciansRef = useRef(false);
-  const isMusicEnabledRef = useRef(true);
   const stageVideoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const topFansRef = useRef<HTMLDivElement | null>(null);
@@ -231,6 +230,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [isMapIntroVisible, setIsMapIntroVisible] = useState(false);
   const [mapPreviewBannerUrl, setMapPreviewBannerUrl] = useState<string | null>(null);
   const [mapReturnTransitionPhase, setMapReturnTransitionPhase] = useState<'idle' | 'to-black' | 'from-black'>('idle');
+  const [bandManagementVenueContext, setBandManagementVenueContext] = useState<{ name: string; maxRevenue: number } | null>(null);
   const [bandMenuView, setBandMenuView] = useState<BandMenuView>('band');
   const [fameProgressValue, setFameProgressValue] = useState(0);
   const [famePulseTick, setFamePulseTick] = useState(0);
@@ -333,6 +333,21 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const isBandConfigVisible = isBandConfigOpen || isClosingBandConfig;
   const activeBandInstrumentsKey = activeBandInstruments.join('|');
   const bandManagementBackgroundImage = !isStageShowActive && mapPreviewBannerUrl ? mapPreviewBannerUrl : backgroundBackstage;
+  const openBandManagementWithContext = React.useCallback((stageContext?: { name: string; maxRevenue: number } | null) => {
+    setBandManagementVenueContext(stageContext ?? null);
+    openBandManagementScreen();
+  }, [openBandManagementScreen]);
+  const stageBandSlots = useMemo(
+    () => bandInstrumentColumns.map((column) => ({
+      id: column.id,
+      instrumentLabel: column.label,
+      instrumentIcon: column.icon,
+      musicianFace: column.musicianFace,
+      hasMusician: column.hasMusician,
+      rarityClass: column.rarityClass,
+    })),
+    [bandInstrumentColumns]
+  );
 
   useEffect(() => {
     const shouldPlayMapTheme = isMusicEnabled && !isStageShowActive && mapReturnTransitionPhase !== 'to-black';
@@ -357,6 +372,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   };
 
   const pauseStageAudios = () => {
+    stagePlayPendingRef.current = false;
+    isMusicPlayingRef.current = false;
+
     const stageAudios = getStageAudios();
     if (stageAudios.length === 0) {
       return;
@@ -458,7 +476,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
     const stageAudio = garageAudioRef.current ?? stageAudios[0];
     garageAudioRef.current = stageAudio;
 
-    if (!hasActiveMusiciansRef.current || !isMusicEnabledRef.current) {
+    if (!hasActiveMusiciansRef.current) {
       return;
     }
 
@@ -485,7 +503,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
 
       clearStageStemFadeTimeout(instrument);
 
-      const targetVolume = isMusicEnabledRef.current ? (instrumentVolumes[instrument] ?? 1) : 0;
+      const targetVolume = isMusicEnabled ? (instrumentVolumes[instrument] ?? 1) : 0;
       const startFromZero = !audio.playing();
 
       if (startFromZero) {
@@ -1481,10 +1499,6 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   }, [bandFansValue]);
 
   useEffect(() => {
-    isMusicEnabledRef.current = isMusicEnabled;
-  }, [isMusicEnabled]);
-
-  useEffect(() => {
     const stageAudio = garageAudioRef.current;
     if (!stageAudio) {
       return;
@@ -1512,7 +1526,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   useEffect(() => {
     const tryResumeStageMusic = () => {
       const stageAudio = garageAudioRef.current;
-      if (!stageAudio || !isMusicEnabled || !hasActiveMusicians) {
+      if (!stageAudio || !hasActiveMusicians) {
         return;
       }
 
@@ -1540,7 +1554,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [rhythmMeter, hasActiveMusicians, isMusicEnabled]);
+  }, [rhythmMeter, hasActiveMusicians]);
 
   useEffect(() => {
     const unlockAudio = () => {
@@ -1657,6 +1671,9 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         bandFansValue={bandFansValue}
         bandPerformanceValue={bandPerformanceValue}
         bandCostValue={bandCostValue}
+        venueContext={bandManagementVenueContext}
+        iconGainWhite={iconCache}
+        iconCostWhite={iconCost}
         formatNumber={formatNumber}
         formatPerformancePercent={formatPerformancePercent}
         formatCurrency={formatCurrency}
@@ -1800,7 +1817,15 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         mapImageUrl={stageWorldMap}
         iconFansWhite={iconFansWhite}
         iconIngressoWhite={iconIngressoBranco}
+        iconGainWhite={iconCache}
+        iconCostWhite={iconCost}
         iconValorCacheTotal={iconCache}
+        bandSlots={stageBandSlots}
+        bandTotalCache={bandCostValue}
+        emptyMusicianIcon={iconMusicoVazio}
+        onOpenBandManagement={openBandManagementWithContext}
+        isBandQuickAccessVisible={shouldRenderSideMenu && activeScreen !== 'musicians' && !isBandManagementScreenVisible}
+        isBandQuickAccessHiding={isSideMenuHiding}
         introImageUrl={stageWorldPreview}
         bandName={activeBand.name}
         bandLogoUrl={activeBand.logoUrl}
@@ -1829,7 +1854,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
           navStore={navStore}
           navStage={navStage}
           navSongs={navSongs}
-          onOpenBandManagementScreen={openBandManagementScreen}
+          onOpenBandManagementScreen={() => openBandManagementWithContext(null)}
           onOpenMusiciansScreen={openMusiciansScreen}
           onCycleStage={() => undefined}
         />

@@ -36,14 +36,16 @@ const StageBottomNav: React.FC<StageBottomNavProps> = ({
 
   return (
     <div className={`game-bottom-nav${variant === 'side' ? ' game-side-nav' : ''}${isHiding ? ' is-hiding' : ''}${resolvedClassName}`}>
-      <button
-        type="button"
-        className={`bottom-item${isBandManagementScreenVisible ? ' active' : ''}`}
-        onClick={onOpenBandManagementScreen}
-      >
-        <img src={navBand} alt="Banda" className="bottom-item-icon" />
-        <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Banda</span>
-      </button>
+      {variant !== 'side' ? (
+        <button
+          type="button"
+          className={`bottom-item${isBandManagementScreenVisible ? ' active' : ''}`}
+          onClick={onOpenBandManagementScreen}
+        >
+          <img src={navBand} alt="Banda" className="bottom-item-icon" />
+          <span className={variant === 'side' ? 'bottom-item-label-side' : ''}>Banda</span>
+        </button>
+      ) : null}
       <button type="button" className={`bottom-item${availableToHireCount > 0 ? ' has-badge' : ''}`} onClick={onOpenMusiciansScreen}>
         {availableToHireCount > 0 ? (
           <span className="bottom-item-badge bottom-item-badge-green">{availableToHireCount > 99 ? '99+' : availableToHireCount}</span>

@@ -67,6 +67,30 @@
   opacity: 0.86;
 }
 
+.band-management-venue-cache-wrap {
+  position: relative;
+  z-index: 3;
+  width: min(420px, calc(100vw - 40px));
+  justify-self: center;
+  align-self: end;
+  margin-top: auto;
+  margin-bottom: 8px;
+  transform: translateY(-8px);
+}
+
+.band-management-venue-cache-card {
+  width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 14px 0 0;
+}
+
+.band-management-venue-cache-card .stage-venue-cache-track {
+  height: 14px;
+  border-width: 2px;
+}
+
 .band-management-bottom-panel {
   position: relative;
   z-index: 3;
@@ -233,6 +257,12 @@
 @media (max-width: 720px) {
   .band-management-top-hero {
     min-height: clamp(250px, 36vh, 320px);
+  }
+
+  .band-management-venue-cache-wrap {
+    width: min(360px, calc(100vw - 32px));
+    margin-bottom: 6px;
+    transform: translateY(-6px);
   }
 
   .band-management-bottom-panel {

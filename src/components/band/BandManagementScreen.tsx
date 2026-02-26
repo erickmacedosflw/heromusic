@@ -2,6 +2,7 @@ import React from 'react';
 import type { Instrument } from '../../state/gameStore';
 import BandInstrumentSelector from './BandInstrumentSelector';
 import MusicianDetailModal from '../musicians/MusicianDetailModal';
+import StageVenueCacheCard from '../stage/StageVenueCacheCard';
 import './BandManagementScreen.css';
 
 type BandMenuView = 'band' | 'specials' | 'analysis';
@@ -45,10 +46,13 @@ type BandManagementScreenProps = {
   iconFansWhite: string;
   iconRhythmWhite: string;
   iconCost: string;
+  iconGainWhite: string;
+  iconCostWhite: string;
   bandHypeValue: number;
   bandFansValue: number;
   bandPerformanceValue: number;
   bandCostValue: number;
+  venueContext?: { name: string; maxRevenue: number } | null;
   formatNumber: (value: number) => string;
   formatPerformancePercent: (value: number) => string;
   formatCurrency: (value: number) => string;
@@ -80,10 +84,13 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
   iconFansWhite,
   iconRhythmWhite,
   iconCost,
+  iconGainWhite,
+  iconCostWhite,
   bandHypeValue,
   bandFansValue,
   bandPerformanceValue,
   bandCostValue,
+  venueContext = null,
   formatNumber,
   formatPerformancePercent,
   formatCurrency,
@@ -236,6 +243,20 @@ const BandManagementScreen: React.FC<BandManagementScreenProps> = ({
               </button>
             ) : null}
           </div>
+
+          {venueContext && !isSelectorDetailOpen ? (
+            <div className="band-management-venue-cache-wrap">
+              <StageVenueCacheCard
+                maxRevenue={Math.max(0, venueContext.maxRevenue)}
+                bandTotalCache={bandCostValue}
+                iconGainWhite={iconGainWhite}
+                iconCostWhite={iconCostWhite}
+                className="band-management-venue-cache-card"
+                showCenterGainBadge
+                hideSideValues
+              />
+            </div>
+          ) : null}
 
           {activeBandSelectorInstrument && selectedSelectorDetail ? (
             <MusicianDetailModal

@@ -1,6 +1,9 @@
 import React from 'react';
 import './StageMapModal.css';
 import iconFechar from '../../rsc/images/icons/Icone_fechar.png';
+import StageBandSlotsGroup, { type StageBandSlot } from './StageBandSlotsGroup';
+import StageSofiaDialog from './StageSofiaDialog';
+import StageVenueCacheCard from './StageVenueCacheCard';
 
 type StageMapEntry = {
   id: number;
@@ -20,7 +23,15 @@ type StageMapModalProps = {
   mapImageUrl: string;
   iconFansWhite: string;
   iconIngressoWhite: string;
+  iconGainWhite: string;
+  iconCostWhite: string;
   iconValorCacheTotal: string;
+  bandSlots?: StageBandSlot[];
+  bandTotalCache?: number;
+  emptyMusicianIcon?: string;
+  onOpenBandManagement?: (stageContext?: { name: string; maxRevenue: number } | null) => void;
+  isBandQuickAccessVisible?: boolean;
+  isBandQuickAccessHiding?: boolean;
   stages: StageMapEntry[];
   currentStageId: number;
   isEmbedded?: boolean;
@@ -48,7 +59,15 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   mapImageUrl,
   iconFansWhite,
   iconIngressoWhite,
+  iconGainWhite,
+  iconCostWhite,
   iconValorCacheTotal,
+  bandSlots = [],
+  bandTotalCache = 0,
+  emptyMusicianIcon,
+  onOpenBandManagement,
+  isBandQuickAccessVisible = true,
+  isBandQuickAccessHiding = false,
   stages,
   currentStageId,
   isEmbedded = false,
@@ -79,6 +98,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   const [transitionOverlayOpacity, setTransitionOverlayOpacity] = React.useState(0);
   const [previewStage, setPreviewStage] = React.useState<StageMapEntry | null>(null);
   const [isPreviewClosing, setIsPreviewClosing] = React.useState(false);
+  const [sofiaDialog, setSofiaDialog] = React.useState<{ message: string; confirmLabel: string } | null>(null);
   const previewCloseTimeoutRef = React.useRef<number | null>(null);
   const transitionFrameRef = React.useRef<number | null>(null);
   const transitionTimeoutRef = React.useRef<number | null>(null);
@@ -146,6 +166,27 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     },
     [previewStage]
   );
+
+  const closeSofiaDialog = React.useCallback(() => {
+    setSofiaDialog(null);
+  }, []);
+
+  const allocatedMusiciansCount = React.useMemo(
+    () => bandSlots.filter((slot) => slot.hasMusician).length,
+    [bandSlots]
+  );
+
+  const getStageValidationMessage = React.useCallback((stage: StageMapEntry) => {
+    if (allocatedMusiciansCount <= 0) {
+      return 'A banda precisa ter pelo menos 1 músico alocado para poder ir para o palco.';
+    }
+
+    if (Math.max(0, bandTotalCache) > Math.max(0, stage.maxRevenue)) {
+      return 'O cachê total da banda está acima da receita máxima deste local. Ajuste os músicos para ficar dentro do valor do local.';
+    }
+
+    return null;
+  }, [allocatedMusiciansCount, bandTotalCache]);
 
   const minScale = React.useMemo(() => {
     if (imageSize.height <= 0 || imageSize.width <= 0 || !mapScrollRef.current) {
@@ -529,6 +570,22 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     renderY: imageSize.height > 0 ? ((stage.y / 100) * imageSize.height) * mapScale : 0,
   }));
 
+  const handleOpenBandFromMap = React.useCallback(() => {
+    onOpenBandManagement?.(null);
+  }, [onOpenBandManagement]);
+
+  const handleOpenBandFromPreview = React.useCallback(() => {
+    if (!previewStage) {
+      onOpenBandManagement?.(null);
+      return;
+    }
+
+    onOpenBandManagement?.({
+      name: previewStage.name,
+      maxRevenue: Math.max(0, previewStage.maxRevenue),
+    });
+  }, [onOpenBandManagement, previewStage]);
+
   if (!shouldRender) {
     return null;
   }
@@ -618,6 +675,17 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
           })}
           </div>
         </div>
+        {onOpenBandManagement && isBandQuickAccessVisible ? (
+          <div className={`stage-map-band-quick-access${isBandQuickAccessHiding ? ' is-hiding' : ' map-ui-reveal'}`}>
+            <StageBandSlotsGroup
+              slots={bandSlots}
+              emptyMusicianIcon={emptyMusicianIcon}
+              className="is-clickable"
+              onClick={handleOpenBandFromMap}
+              ariaLabel="Abrir edição da banda"
+            />
+          </div>
+        ) : null}
         {previewStage && !isStageTransitioning ? (
           <div className={`stage-map-preview${isStageTransitioning ? ' is-transitioning' : ''}${isPreviewClosing ? ' is-closing' : ''}`}>
             <div
@@ -649,6 +717,25 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
               </div>
 
               <div className="stage-map-preview-stats">
+                <div className="stage-map-preview-band-row">
+                  <StageVenueCacheCard
+                    maxRevenue={Math.max(0, previewStage.maxRevenue)}
+                    bandTotalCache={bandTotalCache}
+                    iconGainWhite={iconGainWhite}
+                    iconCostWhite={iconCostWhite}
+                    className="stage-map-preview-cache-meter"
+                    showCenterGainBadge
+                    hideSideValues
+                  />
+
+                  <StageBandSlotsGroup
+                    slots={bandSlots}
+                    emptyMusicianIcon={emptyMusicianIcon}
+                    className={onOpenBandManagement ? 'is-clickable' : undefined}
+                    onClick={onOpenBandManagement ? handleOpenBandFromPreview : undefined}
+                    ariaLabel="Abrir edição da banda"
+                  />
+                </div>
                 <div className="stage-map-preview-stat">
                   <img src={iconFansWhite} alt="Público" className="stage-map-preview-stat-icon" />
                   <div>
@@ -679,11 +766,15 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
                   onClick={() => {
                     if (!previewStage || isStageTransitioning) return;
                     const stageToGo = previewStage;
+                    const validationMessage = getStageValidationMessage(stageToGo);
+                    if (validationMessage) {
+                      setSofiaDialog({ message: validationMessage, confirmLabel: 'Entendi' });
+                      return;
+                    }
                     closePreviewWithAnimation(() => handleSelectStageWithTransition(stageToGo));
                   }}
                   disabled={isStageTransitioning}
                   aria-label={`Ir para ${previewStage.name}`}
-                  data-click-sfx="confirm"
                 >
                   Ir para o palco
                 </button>
@@ -691,6 +782,12 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
             </div>
           </div>
         ) : null}
+        <StageSofiaDialog
+          isVisible={Boolean(sofiaDialog)}
+          message={sofiaDialog?.message ?? ''}
+          confirmLabel={sofiaDialog?.confirmLabel ?? 'Entendi'}
+          onConfirm={closeSofiaDialog}
+        />
         </div>
     </aside>
   );
