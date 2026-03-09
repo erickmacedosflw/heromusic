@@ -1,8 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import './Stage3DScene.css';
 
 type StagePerformerInstrument = 'drums' | 'guitar' | 'bass' | 'keys';
@@ -47,6 +44,8 @@ const performerShadowScale: Record<StagePerformerInstrument, [number, number]> =
   bass: [1.72, 0.58],
   keys: [1.98, 0.7],
 };
+
+const performerSpriteBaseY = 0.11 + stageVerticalOffset;
 
 type CameraShot = {
   type: 'general' | 'focus' | 'sweep';
@@ -241,6 +240,12 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     const backgroundParallaxCurrent = new THREE.Vector2(0, 0);
     const backgroundParallaxTarget = new THREE.Vector2(0, 0);
     const backgroundParallaxLimits = new THREE.Vector2(0, 0);
+    const backgroundLayoutState = {
+      aspect: 0,
+      distance: 0,
+      fov: 0,
+      textureAspect: 0,
+    };
 
     const getBackgroundAspect = () => {
       const bgMap = backgroundMaterial.map;
@@ -264,13 +269,34 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       return width / height;
     };
 
-    const updateBackgroundPlaneScale = () => {
+    const syncBackgroundPlanePosition = () => {
+      backgroundPlane.position.x = backgroundParallaxCurrent.x;
+      backgroundPlane.position.y = backgroundBaseY + backgroundParallaxCurrent.y;
+    };
+
+    const updateBackgroundPlaneScale = (force = false) => {
       const fitScale = 4;
       const distance = Math.abs(camera.position.z - backgroundPlane.position.z);
+      const textureAspect = getBackgroundAspect();
+
+      if (
+        !force
+        && Math.abs(backgroundLayoutState.aspect - camera.aspect) < 0.001
+        && Math.abs(backgroundLayoutState.distance - distance) < 0.08
+        && Math.abs(backgroundLayoutState.fov - camera.fov) < 0.08
+        && Math.abs(backgroundLayoutState.textureAspect - textureAspect) < 0.001
+      ) {
+        syncBackgroundPlanePosition();
+        return;
+      }
+
+      backgroundLayoutState.aspect = camera.aspect;
+      backgroundLayoutState.distance = distance;
+      backgroundLayoutState.fov = camera.fov;
+      backgroundLayoutState.textureAspect = textureAspect;
+
       const frustumHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
       const frustumWidth = frustumHeight * camera.aspect;
-
-      const textureAspect = getBackgroundAspect();
       let planeHeight = frustumHeight * fitScale;
       let planeWidth = planeHeight * textureAspect;
       if (planeWidth > frustumWidth * fitScale) {
@@ -292,8 +318,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         backgroundParallaxLimits.y
       );
 
-      backgroundPlane.position.x = backgroundParallaxCurrent.x;
-      backgroundPlane.position.y = backgroundBaseY + backgroundParallaxCurrent.y;
+      syncBackgroundPlanePosition();
       backgroundPlane.scale.set(planeWidth, planeHeight, 1);
     };
 
@@ -333,7 +358,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
           sceneBackgroundTexture = videoTexture;
           backgroundMaterial.map = videoTexture;
           backgroundMaterial.needsUpdate = true;
-          updateBackgroundPlaneScale();
+          updateBackgroundPlaneScale(true);
         };
 
         video.addEventListener('loadeddata', activateVideoTexture, { once: true });
@@ -419,11 +444,14 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
     const spriteTextureLoader = new THREE.TextureLoader();
     const musicianSprites: Array<{
+      instrument: StagePerformerInstrument;
       sprite: THREE.Sprite;
       shadow: THREE.Mesh;
       texture: THREE.Texture;
       spriteMaterial: THREE.SpriteMaterial;
       shadowMaterial: THREE.MeshBasicMaterial;
+      baseSpriteScale: [number, number];
+      baseShadowOpacity: number;
     }> = [];
 
     activeMusiciansRef.current.forEach((musician) => {
@@ -446,7 +474,7 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const [scaleX, scaleY] = performerSpriteScale[musician.instrument];
       sprite.scale.set(scaleX, scaleY, 1);
       sprite.center.set(0.5, 0.02);
-      sprite.position.set(basePosition.x, 0.11 + stageVerticalOffset, basePosition.z);
+      sprite.position.set(basePosition.x, performerSpriteBaseY, basePosition.z);
       sprite.renderOrder = 5;
       scene.add(sprite);
 
@@ -468,11 +496,14 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       scene.add(shadow);
 
       musicianSprites.push({
+        instrument: musician.instrument,
         sprite,
         shadow,
         texture: spriteTexture,
         spriteMaterial,
         shadowMaterial,
+        baseSpriteScale: [scaleX, scaleY],
+        baseShadowOpacity: 0.84,
       });
     });
 
@@ -496,32 +527,6 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       scene.add(standIn);
     });
 
-    const composerRenderTarget = !isMobile
-      ? new THREE.WebGLRenderTarget(1, 1, {
-          format: THREE.RGBAFormat,
-          depthBuffer: true,
-          stencilBuffer: false,
-        })
-      : null;
-
-    const composer = composerRenderTarget ? new EffectComposer(renderer, composerRenderTarget) : null;
-    const renderPass = composer ? new RenderPass(scene, camera) : null;
-    if (composer && renderPass) {
-      renderPass.clear = true;
-      renderPass.clearAlpha = 0;
-      composer.addPass(renderPass);
-    }
-    const bokehPass = composer
-      ? new BokehPass(scene, camera, {
-          focus: 8,
-          aperture: 0.000004,
-          maxblur: 0.00035,
-        })
-      : null;
-    if (composer && bokehPass) {
-      composer.addPass(bokehPass);
-    }
-
     const resize = () => {
       const { clientWidth, clientHeight } = container;
       if (!clientWidth || !clientHeight) {
@@ -529,12 +534,9 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       }
 
       renderer.setSize(clientWidth, clientHeight, false);
-      if (composer) {
-        composer.setSize(clientWidth, clientHeight);
-      }
       camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
-      updateBackgroundPlaneScale();
+      updateBackgroundPlaneScale(true);
     };
 
     resize();
@@ -547,6 +549,13 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
     let lastFrameTime = 0;
     const cameraTarget = new THREE.Vector3();
     const lookAtTarget = new THREE.Vector3();
+    const targetPos = new THREE.Vector3();
+    const targetLook = new THREE.Vector3();
+    const shotDirection = new THREE.Vector3();
+    const focusAnchor = new THREE.Vector3();
+    const frontLightTarget = frontKeyLight.position.clone();
+    const frontLightAimTarget = frontKeyLight.target.position.clone();
+    let lastLightUpdateAt = 0;
 
     const setFocusedInstrument = (instrument: StagePerformerInstrument | null) => {
       currentFocusedInstrumentRef.current = instrument;
@@ -600,10 +609,17 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       const elapsed = clock.getElapsedTime();
       const playing = isMusicPlayingRef.current;
 
-      frontKeyLight.position.x = Math.sin(elapsed * (playing ? 1.2 : 0.36)) * (playing ? 2.8 : 1.2);
-      frontKeyLight.position.y = 7 + Math.cos(elapsed * (playing ? 0.76 : 0.24)) * 0.45;
-      frontKeyLight.position.z = 9.1 + Math.sin(elapsed * (playing ? 0.54 : 0.18)) * 0.48;
-      frontKeyLight.target.position.set(frontKeyLight.position.x * 0.18, 1.1, -1.6);
+      if (elapsed - lastLightUpdateAt > (isMobile ? 0.08 : 0.05)) {
+        lastLightUpdateAt = elapsed;
+        frontLightTarget.set(
+          Math.sin(elapsed * (playing ? 1.2 : 0.36)) * (playing ? 2.8 : 1.2),
+          7 + Math.cos(elapsed * (playing ? 0.76 : 0.24)) * 0.45,
+          9.1 + Math.sin(elapsed * (playing ? 0.54 : 0.18)) * 0.48
+        );
+        frontLightAimTarget.set(frontLightTarget.x * 0.18, 1.1, -1.6);
+      }
+      frontKeyLight.position.lerp(frontLightTarget, 0.18);
+      frontKeyLight.target.position.lerp(frontLightAimTarget, 0.2);
       frontKeyLight.target.updateMatrixWorld();
 
       if (!isCameraMotionEnabledRef.current) {
@@ -678,27 +694,26 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
 
       const handAmount = isCloseShot ? 0.024 : 0.015;
 
-      const targetPos = new THREE.Vector3(
+      targetPos.set(
         shot.pos.x,
         shot.pos.y,
         shot.pos.z
       );
-      const focusPosition = shot.instrument
-        ? performerPositions[shot.instrument]
-        : null;
+      const focusPosition = shot.instrument ? performerPositions[shot.instrument] : null;
+      const hasFocusAnchor = Boolean(isCloseShot && focusPosition);
 
-      const focusAnchor = focusPosition
-        ? new THREE.Vector3(
+      if (focusPosition) {
+        focusAnchor.set(
           focusPosition.x,
           focusPosition.y + 1.42,
           focusPosition.z + 0.04
-        )
-        : null;
+        );
+      }
 
-      if (isCloseShot && focusAnchor) {
+      if (hasFocusAnchor) {
         const shotDistanceToPortrait = Math.max(5.2, Math.min(6.7, shot.pos.distanceTo(focusAnchor)));
         const closeDistance = shotDistanceToPortrait;
-        const shotDirection = new THREE.Vector3().subVectors(shot.pos, focusAnchor);
+        shotDirection.subVectors(shot.pos, focusAnchor);
         if (shotDirection.lengthSq() < 0.0001) {
           shotDirection.set(0, 0.24, 1);
         }
@@ -733,15 +748,15 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         targetPos.z += idleSwayZ;
       }
 
-      const targetLook = new THREE.Vector3(
-        (focusAnchor ? focusAnchor.x : shot.look.x)
+      targetLook.set(
+        (hasFocusAnchor ? focusAnchor.x : shot.look.x)
           + Math.sin(elapsed * 0.62) * (isCloseShot ? 0.009 : 0.005)
           + Math.sin(elapsed * 0.42) * (isCloseShot ? 0.01 : 0.03)
           + randomLookOffsetRef.current.x,
-        (focusAnchor ? focusAnchor.y - 0.2 : shot.look.y)
+        (hasFocusAnchor ? focusAnchor.y - 0.2 : shot.look.y)
           + Math.cos(elapsed * 0.41) * (isCloseShot ? 0.007 : 0.003)
           + randomLookOffsetRef.current.y,
-        (focusAnchor ? focusAnchor.z : shot.look.z) + randomLookOffsetRef.current.z
+        (hasFocusAnchor ? focusAnchor.z : shot.look.z) + randomLookOffsetRef.current.z
       );
 
       if (!playing) {
@@ -783,28 +798,50 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
         -backgroundParallaxLimits.y,
         backgroundParallaxLimits.y
       );
-      backgroundParallaxCurrent.lerp(backgroundParallaxTarget, 0.045);
+      backgroundParallaxCurrent.lerp(backgroundParallaxTarget, 0.12);
       updateBackgroundPlaneScale();
 
-      if (bokehPass) {
-        const focusDistance = Math.max(1.2, Math.min(16, camera.position.distanceTo(currentLookRef.current)));
-        const closeStrengthRaw = isCloseShot ? 1 - (focusDistance - 2.3) / 5.8 : 0;
-        const closeStrength = Math.max(0, Math.min(1, closeStrengthRaw));
-        bokehPass.materialBokeh.uniforms.focus.value = focusDistance;
-        const smoothClose = closeStrength * closeStrength * (3 - 2 * closeStrength);
-        bokehPass.materialBokeh.uniforms.aperture.value = 0.0000013 + smoothClose * 0.0000022;
-        bokehPass.materialBokeh.uniforms.maxblur.value = 0.00008 + smoothClose * 0.00018;
-      }
+      musicianSprites.forEach((entry) => {
+        const isFocused = shot.instrument === entry.instrument;
+        const scaleTarget = isCloseShot
+          ? isFocused
+            ? 1
+            : 0.95
+          : 1;
+        const opacityTarget = isCloseShot
+          ? isFocused
+            ? 1
+            : 0.78
+          : 0.96;
+        const tintTarget = isCloseShot
+          ? isFocused
+            ? 1
+            : 0.82
+          : 0.98;
+        const spriteYTarget = performerSpriteBaseY;
+
+        entry.sprite.scale.x += (entry.baseSpriteScale[0] * scaleTarget - entry.sprite.scale.x) * 0.16;
+        entry.sprite.scale.y += (entry.baseSpriteScale[1] * scaleTarget - entry.sprite.scale.y) * 0.16;
+        entry.sprite.position.y += (spriteYTarget - entry.sprite.position.y) * 0.18;
+        entry.spriteMaterial.opacity += (opacityTarget - entry.spriteMaterial.opacity) * 0.18;
+        entry.spriteMaterial.color.setScalar(tintTarget);
+      });
 
       if (elapsed - lastShadowFrameSentAtRef.current > 0.06) {
         lastShadowFrameSentAtRef.current = elapsed;
         const shadowDrift = frontKeyLight.position.x / 3.4;
-        musicianSprites.forEach(({ shadow, shadowMaterial }) => {
+        musicianSprites.forEach(({ instrument, shadow, shadowMaterial, baseShadowOpacity }) => {
           const baseShadowX = (shadow.userData.baseX as number) ?? shadow.position.x;
           const baseShadowZ = (shadow.userData.baseZ as number) ?? shadow.position.z;
           shadow.position.x = baseShadowX;
           shadow.position.z = baseShadowZ;
-          shadowMaterial.opacity = 0.76 + Math.abs(shadowDrift) * 0.12;
+          const isFocused = shot.instrument === instrument;
+          const shadowOpacityTarget = isCloseShot
+            ? isFocused
+              ? 0.7
+              : 0.54
+            : baseShadowOpacity;
+          shadowMaterial.opacity = shadowOpacityTarget + Math.abs(shadowDrift) * 0.08;
         });
       }
 
@@ -845,8 +882,6 @@ const Stage3DScene: React.FC<Stage3DSceneProps> = ({
       setFocusedInstrument(null);
       currentShotRef.current = generalShot;
 
-      composer?.dispose();
-      composerRenderTarget?.dispose();
       if (sceneBackgroundVideoElement) {
         sceneBackgroundVideoElement.pause();
         sceneBackgroundVideoElement.src = '';

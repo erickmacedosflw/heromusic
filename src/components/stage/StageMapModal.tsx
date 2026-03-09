@@ -41,6 +41,7 @@ type StageMapModalProps = {
   introPlayId?: number;
   resetViewToken?: number;
   onIntroVisibilityChange?: (isVisible: boolean) => void;
+  onPreviewOpenChange?: (isOpen: boolean) => void;
   onPreviewStageBannerChange?: (bannerUrl: string | null) => void;
   onStageTransitionStart?: () => void;
   onClose: () => void;
@@ -77,6 +78,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   introPlayId,
   resetViewToken,
   onIntroVisibilityChange,
+  onPreviewOpenChange,
   onPreviewStageBannerChange,
   onStageTransitionStart,
   onClose,
@@ -144,6 +146,10 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
   React.useEffect(() => {
     onPreviewStageBannerChange?.(previewStage?.backgroundUrl ?? null);
   }, [previewStage, onPreviewStageBannerChange]);
+
+  React.useEffect(() => {
+    onPreviewOpenChange?.(Boolean(previewStage) && !isPreviewClosing);
+  }, [isPreviewClosing, onPreviewOpenChange, previewStage]);
 
   const closePreviewWithAnimation = React.useCallback(
     (afterClose?: () => void) => {
@@ -590,9 +596,11 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
     return null;
   }
 
+  const isMapInteractionLocked = Boolean(previewStage) && !isPreviewClosing;
+
   return (
     <aside
-      className={`stage-map-modal${introPhase !== 'hidden' ? ' has-intro' : ''}${isClosing ? ' is-closing' : ''}${isStageTransitioning ? ' is-stage-transitioning' : ''}${isEmbedded ? ' is-embedded' : ''}`}
+      className={`stage-map-modal${introPhase !== 'hidden' ? ' has-intro' : ''}${isClosing ? ' is-closing' : ''}${isStageTransitioning ? ' is-stage-transitioning' : ''}${isMapInteractionLocked ? ' has-preview-open' : ''}${isEmbedded ? ' is-embedded' : ''}`}
       role={isEmbedded ? undefined : 'dialog'}
       aria-modal={isEmbedded ? undefined : true}
       aria-label="Mapa da cidade"
@@ -656,6 +664,9 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
                 className={`stage-map-point${isActive ? ' is-active' : ''}`}
                 style={{ left: `${marker.renderX}px`, top: `${marker.renderY}px` }}
                 onClick={(event) => {
+                  if (isMapInteractionLocked) {
+                    return;
+                  }
                   event.stopPropagation();
                   if (previewCloseTimeoutRef.current !== null) {
                     window.clearTimeout(previewCloseTimeoutRef.current);
@@ -666,7 +677,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
                 }}
                 title={marker.name}
                 aria-label={`Ir para ${marker.name}`}
-                disabled={isStageTransitioning}
+                disabled={isStageTransitioning || isMapInteractionLocked}
               >
                 <img src={marker.badgeUrl} alt={marker.name} />
                 <span>{marker.name}</span>
@@ -675,7 +686,7 @@ const StageMapModal: React.FC<StageMapModalProps> = ({
           })}
           </div>
         </div>
-        {onOpenBandManagement && isBandQuickAccessVisible ? (
+        {onOpenBandManagement && isBandQuickAccessVisible && !isMapInteractionLocked ? (
           <div className={`stage-map-band-quick-access${isBandQuickAccessHiding ? ' is-hiding' : ' map-ui-reveal'}`}>
             <StageBandSlotsGroup
               slots={bandSlots}

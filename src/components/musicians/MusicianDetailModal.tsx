@@ -175,6 +175,23 @@ const MusicianDetailModal: React.FC<MusicianDetailModalProps> = ({
         <>
           <header className={`musician-hero-header ${transitionClass}`}>
             <strong>{currentMusician.Instrumentista}</strong>
+            <div className="musician-hero-badges">
+              <span className={`musician-rarity musician-hero-rarity ${selectedMusicianRarityClass ?? 'bronze'}`}>
+                {rarityLabel}
+              </span>
+              {isSelectedMusicianHired ? (
+                <span className="musician-status-badge musician-hero-status">Contratado</span>
+              ) : (
+                <span className={`musician-detail-availability musician-hero-availability${isSelectedMusicianLockedByCoins ? ' locked' : ' available'}`}>
+                  <img
+                    src={isSelectedMusicianLockedByCoins ? iconBloqueado : iconDisponivel}
+                    alt={isSelectedMusicianLockedByCoins ? 'Bloqueado' : 'Disponível'}
+                    className="musician-detail-availability-icon"
+                  />
+                  <span>{isSelectedMusicianLockedByCoins ? 'Bloqueado' : 'Disponível'}</span>
+                </span>
+              )}
+            </div>
           </header>
 
           <div className={`musician-hero-scene ${transitionClass}`}>

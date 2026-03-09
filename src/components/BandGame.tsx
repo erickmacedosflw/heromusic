@@ -228,6 +228,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
   const [mapIntroPlayId, setMapIntroPlayId] = useState(0);
   const [mapUiRevealId, setMapUiRevealId] = useState(0);
   const [isMapIntroVisible, setIsMapIntroVisible] = useState(false);
+  const [isMapVenuePreviewOpen, setIsMapVenuePreviewOpen] = useState(false);
   const [mapPreviewBannerUrl, setMapPreviewBannerUrl] = useState<string | null>(null);
   const [mapReturnTransitionPhase, setMapReturnTransitionPhase] = useState<'idle' | 'to-black' | 'from-black'>('idle');
   const [bandManagementVenueContext, setBandManagementVenueContext] = useState<{ name: string; maxRevenue: number } | null>(null);
@@ -1824,13 +1825,14 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         bandTotalCache={bandCostValue}
         emptyMusicianIcon={iconMusicoVazio}
         onOpenBandManagement={openBandManagementWithContext}
-        isBandQuickAccessVisible={shouldRenderSideMenu && activeScreen !== 'musicians' && !isBandManagementScreenVisible}
+        isBandQuickAccessVisible={shouldRenderSideMenu && activeScreen !== 'musicians' && !isBandManagementScreenVisible && !isMapVenuePreviewOpen}
         isBandQuickAccessHiding={isSideMenuHiding}
         introImageUrl={stageWorldPreview}
         bandName={activeBand.name}
         bandLogoUrl={activeBand.logoUrl}
         introPlayId={mapIntroPlayId}
         onIntroVisibilityChange={setIsMapIntroVisible}
+        onPreviewOpenChange={setIsMapVenuePreviewOpen}
         onPreviewStageBannerChange={setMapPreviewBannerUrl}
         stages={stageMapEntries}
         currentStageId={currentStageId}
@@ -1845,7 +1847,7 @@ const BandGame: React.FC<BandGameProps> = ({ onBackToMenu }) => {
         <StageBottomNav
           key={`nav-${mapUiRevealId}`}
           variant="side"
-          isHiding={isSideMenuHiding}
+          isHiding={isSideMenuHiding || isMapVenuePreviewOpen}
           isBandManagementScreenVisible={isBandManagementScreenVisible}
           className="map-ui-reveal"
           availableToHireCount={availableToHireCount}

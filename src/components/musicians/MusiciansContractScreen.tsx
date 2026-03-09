@@ -170,6 +170,12 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
       return listedMusicianItems.indexOf(a) - listedMusicianItems.indexOf(b);
     });
   const availableMusicianItems = listedMusicianItems.filter((item) => !item.isMusicianHired);
+  const filterCounts = filterOptions.reduce<Record<string, number>>((acc, option) => {
+    acc[option.id] = listedMusicianItems.filter((item) => (
+      option.id === 'all' ? true : item.musician.Instrumento === option.id
+    )).length;
+    return acc;
+  }, {});
 
   const toggleGroup = (group: 'hired' | 'available') => {
     setCollapsedGroups((prev) => ({
@@ -285,7 +291,8 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
                 onClick={() => onChangeFilter(option.id)}
               >
                 <img src={option.icon} alt={option.label} />
-                <span>{option.label}</span>
+                <span className="musicians-filter-label">{option.label}</span>
+                <span className="musicians-filter-count">{filterCounts[option.id] ?? 0}</span>
               </button>
             ))}
           </div>
@@ -304,7 +311,7 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
                     <span className="musicians-group-count">{hiredMusicianItems.length}</span>
                   </span>
                   <span className="musicians-group-arrow" aria-hidden="true">
-                    {collapsedGroups.hired ? '▸' : '▾'}
+                    ▾
                   </span>
                 </button>
                 {!collapsedGroups.hired ? <div className="musicians-list-grid">{hiredMusicianItems.map(renderMusicianCard)}</div> : null}
@@ -324,7 +331,7 @@ const MusiciansContractScreen: React.FC<MusiciansContractScreenProps> = ({
                     <span className="musicians-group-count">{availableMusicianItems.length}</span>
                   </span>
                   <span className="musicians-group-arrow" aria-hidden="true">
-                    {collapsedGroups.available ? '▸' : '▾'}
+                    ▾
                   </span>
                 </button>
                 {!collapsedGroups.available ? (
